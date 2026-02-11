@@ -9,7 +9,7 @@
     - Parameterized queries
     - Defensive error handling
 .NOTES
-    Version: 1.1.0
+    Version: 1.2.0
     Author: Bepoz Support Team
     Last Updated: 2026-02-11
 
@@ -427,6 +427,57 @@ function Test-BepozDatabaseConnection {
         return $false
     }
 }
+
+function Get-BepozDbInfo {
+    <#
+    .SYNOPSIS
+        Gets comprehensive database information including connection string
+    .DESCRIPTION
+        Wrapper function that combines Get-BepozDatabaseConfig and Get-BepozConnectionString
+        Returns a single object with all database info needed by tools
+    .PARAMETER ApplicationName
+        Optional application name to include in connection string
+    .OUTPUTS
+        PSCustomObject with Server, Database, ConnectionString, User, and Registry properties
+    .EXAMPLE
+        $dbInfo = Get-BepozDbInfo -ApplicationName "MyTool"
+        Write-Host "Connecting to: $($dbInfo.Server)\$($dbInfo.Database)"
+        $data = Invoke-BepozQuery -ConnectionString $dbInfo.ConnectionString -Query $sql
+    #>
+
+    [CmdletBinding()]
+    [OutputType([PSCustomObject])]
+    param(
+        [Parameter(Mandatory = $false)]
+        [string]$ApplicationName = "BepozToolkit"
+    )
+
+    try {
+        # Get config (server, database, etc.)
+        $config = Get-BepozDatabaseConfig
+        if (-not $config) {
+            Write-Error "Failed to get database configuration"
+            return $null
+        }
+
+        # Build connection string with custom app name
+        $connStr = "Server=$($config.SqlServer);Database=$($config.Database);Integrated Security=True;TrustServerCertificate=True;Application Name=$ApplicationName;"
+
+        # Return comprehensive info object
+        return [PSCustomObject]@{
+            Server           = $config.SqlServer
+            Database         = $config.Database
+            ConnectionString = $connStr
+            User             = $config.User
+            Registry         = $config.Registry
+            ApplicationName  = $ApplicationName
+        }
+
+    } catch {
+        Write-Error "Failed to get database info: $($_.Exception.Message)"
+        return $null
+    }
+}
 #endregion
 
 #region Module Initialization
@@ -434,6 +485,7 @@ function Test-BepozDatabaseConnection {
 Export-ModuleMember -Function @(
     'Get-BepozDatabaseConfig',
     'Get-BepozConnectionString',
+    'Get-BepozDbInfo',
     'Invoke-BepozQuery',
     'Invoke-BepozNonQuery',
     'Invoke-BepozStoredProc',
@@ -442,6 +494,6 @@ Export-ModuleMember -Function @(
 
 # Display load message if run interactively
 if ($Host.Name -eq 'ConsoleHost') {
-    Write-Host "[BepozDbCore v1.1.0] Module loaded successfully" -ForegroundColor Green
+    Write-Host "[BepozDbCore v1.2.0] Module loaded successfully" -ForegroundColor Green
 }
 #endregion
