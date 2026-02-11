@@ -9,7 +9,7 @@
     - Parameterized queries
     - Defensive error handling
 .NOTES
-    Version: 1.2.0
+    Version: 1.3.0
     Author: Bepoz Support Team
     Last Updated: 2026-02-11
 
@@ -18,6 +18,7 @@
     - Uses Write-Output -NoEnumerate to prevent PowerShell unwrapping
     - Registry paths quoted for Constrained Language Mode compatibility
     - Never concatenates user input into SQL strings
+    - Automatically logs all queries if BepozLogger module is loaded
 #>
 
 #requires -Version 5.1
@@ -162,6 +163,7 @@ function Invoke-BepozQuery {
     $conn = $null
     $cmd = $null
     $adapter = $null
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
     try {
         # Create connection
@@ -186,6 +188,13 @@ function Invoke-BepozQuery {
         $dt = New-Object System.Data.DataTable
         $adapter = New-Object System.Data.SqlClient.SqlDataAdapter($cmd)
         [void]$adapter.Fill($dt)
+
+        $stopwatch.Stop()
+
+        # Log query if BepozLogger is available
+        if (Get-Command -Name Write-BepozLogQuery -ErrorAction SilentlyContinue) {
+            Write-BepozLogQuery -Query $Query -Parameters $Parameters -DurationMs $stopwatch.ElapsedMilliseconds -RowCount $dt.Rows.Count
+        }
 
         # CRITICAL: Use -NoEnumerate to prevent PowerShell from unwrapping DataTable
         # Without this, single-row results become DataRow instead of DataTable
@@ -252,6 +261,7 @@ function Invoke-BepozNonQuery {
 
     $conn = $null
     $cmd = $null
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
     try {
         # Create connection
@@ -274,6 +284,13 @@ function Invoke-BepozNonQuery {
 
         # Execute non-query
         $rowsAffected = $cmd.ExecuteNonQuery()
+        $stopwatch.Stop()
+
+        # Log query if BepozLogger is available
+        if (Get-Command -Name Write-BepozLogQuery -ErrorAction SilentlyContinue) {
+            Write-BepozLogQuery -Query $Query -Parameters $Parameters -DurationMs $stopwatch.ElapsedMilliseconds -RowCount $rowsAffected
+        }
+
         return $rowsAffected
 
     } catch [System.Data.SqlClient.SqlException] {
@@ -494,6 +511,6 @@ Export-ModuleMember -Function @(
 
 # Display load message if run interactively
 if ($Host.Name -eq 'ConsoleHost') {
-    Write-Host "[BepozDbCore v1.2.0] Module loaded successfully" -ForegroundColor Green
+    Write-Host "[BepozDbCore v1.3.0] Module loaded successfully" -ForegroundColor Green
 }
 #endregion
