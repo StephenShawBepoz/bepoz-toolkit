@@ -8,9 +8,9 @@
   },
   "modules": {
     "BepozDbCore": {
-      "version": "1.1.0",
+      "version": "1.2.0",
       "file": "modules/BepozDbCore.ps1",
-      "description": "Core database functions for Bepoz SQL access"
+      "description": "Core database functions for Bepoz SQL access (includes Get-BepozDbInfo)"
     }
   },
   "categories": [
@@ -89,6 +89,17 @@
       "requiresAdmin": false,
       "requiresDatabase": true,
       "author": "Bepoz Support Team"
+    },
+    {
+      "id": "weekschedule-bulk-manager",
+      "name": "WeekSchedule Bulk Manager",
+      "category": "scheduling",
+      "file": "tools/BepozWeekScheduleBulkManager.ps1",
+      "description": "GUI tool for bulk insertion/update/deletion of WeekSchedule records across multiple workstations",
+      "version": "2.0.0",
+      "requiresAdmin": false,
+      "requiresDatabase": true,
+      "author": "Bepoz Administration Team"
     }
   ]
 }
