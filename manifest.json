@@ -21,6 +21,11 @@
       "version": "1.0.0",
       "file": "modules/BepozUI.ps1",
       "description": "Common Windows Forms UI helpers (reduces GUI code by 30-40%)"
+    },
+    "BepozTheme": {
+      "version": "1.0.0",
+      "file": "modules/BepozTheme.ps1",
+      "description": "Official Bepoz UI theme using brand color palette (professional styling)"
     }
   },
   "categories": [
@@ -109,7 +114,8 @@
       "version": "2.0.0",
       "requiresAdmin": false,
       "requiresDatabase": true,
-      "author": "Bepoz Administration Team"
+      "author": "Bepoz Administration Team",
+      "documentation": "https://github.com/StephenShawBepoz/bepoz-toolkit/wiki/WeekSchedule-Bulk-Manager"
     }
   ]
 }
