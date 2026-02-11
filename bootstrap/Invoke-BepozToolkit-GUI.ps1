@@ -594,7 +594,7 @@ function Show-ToolkitGUI {
 
     $Script:StatusLabel = New-Object System.Windows.Forms.Label
     $Script:StatusLabel.Location = New-Object System.Drawing.Point(0, 5)
-    $Script:StatusLabel.Size = New-Object System.Drawing.Size(600, 20)
+    $Script:StatusLabel.Size = New-Object System.Drawing.Size(470, 20)
     $Script:StatusLabel.Text = "Ready"
     $Script:StatusLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
     $logPanel.Controls.Add($Script:StatusLabel)
