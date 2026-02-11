@@ -213,6 +213,7 @@ function Populate-Tools {
     $Script:ToolListBox.Items.Clear()
     $Script:ToolDescriptionLabel.Text = "Select a tool to see details"
     $Script:RunButton.Enabled = $false
+    $Script:ViewDocsButton.Enabled = $false
 
     if ($null -eq $Category) { return }
 
@@ -233,6 +234,7 @@ function Update-ToolDetails {
     if ($null -eq $Tool) {
         $Script:ToolDescriptionLabel.Text = "Select a tool to see details"
         $Script:RunButton.Enabled = $false
+        $Script:ViewDocsButton.Enabled = $false
         return
     }
 
@@ -251,9 +253,13 @@ Category: $($Tool.category)
     if ($Tool.requiresDatabase) {
         $details += "`n🗄 Requires Database Access"
     }
+    if ($Tool.documentation) {
+        $details += "`n`n📚 Documentation Available"
+    }
 
     $Script:ToolDescriptionLabel.Text = $details
     $Script:RunButton.Enabled = $true
+    $Script:ViewDocsButton.Enabled = ($null -ne $Tool.documentation)
     $Script:SelectedTool = $Tool
 }
 
@@ -369,6 +375,63 @@ function Invoke-SelectedTool {
         $Script:ToolListBox.Enabled = $true
     }
 }
+
+function Open-ToolDocumentation {
+    if ($null -eq $Script:SelectedTool) { return }
+
+    $tool = $Script:SelectedTool
+    $docUrl = $tool.documentation
+
+    if ([string]::IsNullOrWhiteSpace($docUrl)) {
+        Write-Log "No documentation available for: $($tool.name)" -Level WARN
+        [System.Windows.Forms.MessageBox]::Show(
+            "No documentation is available for this tool.",
+            "Documentation Not Available",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Information
+        )
+        return
+    }
+
+    try {
+        Write-Log "Opening documentation for $($tool.name): $docUrl" -Level INFO
+        $Script:StatusLabel.Text = "Opening documentation..."
+
+        # Determine if it's a URL or file path
+        if ($docUrl -match '^https?://') {
+            # It's a URL - open in default browser
+            Start-Process $docUrl
+            Write-Log "Opened documentation URL in browser" -Level SUCCESS
+        }
+        elseif (Test-Path $docUrl) {
+            # It's a local file path - open with default application
+            Start-Process $docUrl
+            Write-Log "Opened documentation file: $docUrl" -Level SUCCESS
+        }
+        else {
+            # Path doesn't exist - show error
+            Write-Log "Documentation path not found: $docUrl" -Level ERROR
+            [System.Windows.Forms.MessageBox]::Show(
+                "Documentation file not found:`n`n$docUrl`n`nThis may be a broken link or the file may have been moved.",
+                "Documentation Not Found",
+                [System.Windows.Forms.MessageBoxButtons]::OK,
+                [System.Windows.Forms.MessageBoxIcon]::Warning
+            )
+        }
+
+        $Script:StatusLabel.Text = "Ready"
+    }
+    catch {
+        Write-Log "Failed to open documentation: $($_.Exception.Message)" -Level ERROR
+        $Script:StatusLabel.Text = "Failed to open documentation"
+        [System.Windows.Forms.MessageBox]::Show(
+            "Failed to open documentation:`n`n$($_.Exception.Message)",
+            "Error",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Error
+        )
+    }
+}
 #endregion
 
 #region Main Form
@@ -481,10 +544,22 @@ function Show-ToolkitGUI {
 
     $Script:ToolDescriptionLabel = New-Object System.Windows.Forms.Label
     $Script:ToolDescriptionLabel.Location = New-Object System.Drawing.Point(5, 30)
-    $Script:ToolDescriptionLabel.Size = New-Object System.Drawing.Size(290, 380)
+    $Script:ToolDescriptionLabel.Size = New-Object System.Drawing.Size(290, 330)
     $Script:ToolDescriptionLabel.Text = "Select a tool to see details"
     $Script:ToolDescriptionLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
     $detailsPanel.Controls.Add($Script:ToolDescriptionLabel)
+
+    $Script:ViewDocsButton = New-Object System.Windows.Forms.Button
+    $Script:ViewDocsButton.Location = New-Object System.Drawing.Point(5, 370)
+    $Script:ViewDocsButton.Size = New-Object System.Drawing.Size(290, 40)
+    $Script:ViewDocsButton.Text = "📚 View Documentation"
+    $Script:ViewDocsButton.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+    $Script:ViewDocsButton.BackColor = [System.Drawing.Color]::FromArgb(33, 150, 243)
+    $Script:ViewDocsButton.ForeColor = [System.Drawing.Color]::White
+    $Script:ViewDocsButton.FlatStyle = "Flat"
+    $Script:ViewDocsButton.Enabled = $false
+    $Script:ViewDocsButton.Add_Click({ Open-ToolDocumentation })
+    $detailsPanel.Controls.Add($Script:ViewDocsButton)
 
     $Script:RunButton = New-Object System.Windows.Forms.Button
     $Script:RunButton.Location = New-Object System.Drawing.Point(5, 420)
@@ -523,6 +598,45 @@ function Show-ToolkitGUI {
         }
     })
     $logPanel.Controls.Add($Script:RefreshButton)
+
+    $viewLogsButton = New-Object System.Windows.Forms.Button
+    $viewLogsButton.Location = New-Object System.Drawing.Point(480, 0)
+    $viewLogsButton.Size = New-Object System.Drawing.Size(120, 30)
+    $viewLogsButton.Text = "View Logs"
+    $viewLogsButton.Add_Click({
+        $logDir = "C:\Bepoz\Toolkit\Logs"
+
+        if (Test-Path $logDir) {
+            Write-Log "Opening logs directory: $logDir" -Level INFO
+            Start-Process explorer.exe -ArgumentList $logDir
+        }
+        else {
+            $result = [System.Windows.Forms.MessageBox]::Show(
+                "Logs directory does not exist yet:`n$logDir`n`nLogs are created when you run tools.`n`nWould you like to create this directory now?",
+                "Logs Directory Not Found",
+                [System.Windows.Forms.MessageBoxButtons]::YesNo,
+                [System.Windows.Forms.MessageBoxIcon]::Question
+            )
+
+            if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+                try {
+                    New-Item -Path $logDir -ItemType Directory -Force | Out-Null
+                    Write-Log "Created logs directory: $logDir" -Level SUCCESS
+                    Start-Process explorer.exe -ArgumentList $logDir
+                }
+                catch {
+                    Write-Log "Failed to create logs directory: $($_.Exception.Message)" -Level ERROR
+                    [System.Windows.Forms.MessageBox]::Show(
+                        "Failed to create logs directory:`n$($_.Exception.Message)",
+                        "Error",
+                        [System.Windows.Forms.MessageBoxButtons]::OK,
+                        [System.Windows.Forms.MessageBoxIcon]::Error
+                    )
+                }
+            }
+        }
+    })
+    $logPanel.Controls.Add($viewLogsButton)
 
     $closeButton = New-Object System.Windows.Forms.Button
     $closeButton.Location = New-Object System.Drawing.Point(740, 0)
