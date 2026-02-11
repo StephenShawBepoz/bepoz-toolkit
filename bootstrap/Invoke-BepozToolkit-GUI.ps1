@@ -16,10 +16,17 @@
 .PARAMETER Branch
     Git branch to use (default: main)
 .NOTES
-    Version: 1.0.0
+    Version: 1.2.0
     Author: Bepoz Support Team
     Last Updated: 2026-02-11
     Requires: PowerShell 5.1+, Windows Forms
+
+    Changes in v1.2.0:
+    - Added official Bepoz color palette to all buttons
+    - Added View Logs button (purple)
+    - Added View Documentation button (purple)
+    - Run Tool button now uses Bepoz green
+    - All buttons have Bepoz light blue hover states
 #>
 
 [CmdletBinding()]
@@ -34,7 +41,7 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 #region Configuration
-$Script:Version = "1.0.0"
+$Script:Version = "1.2.0"
 $Script:TempDir = Join-Path $env:TEMP "BepozToolkit_$([guid]::NewGuid().ToString().Substring(0,8))"
 $Script:LogFile = Join-Path $env:TEMP "BepozToolkit.log"
 $Script:BaseUrl = "https://raw.githubusercontent.com/$GitHubOrg/$GitHubRepo/$Branch"
@@ -476,6 +483,7 @@ function Show-ToolkitGUI {
     # Create main form
     $Script:MainForm = New-Object System.Windows.Forms.Form
     $Script:MainForm.Text = "Bepoz Toolkit v$Script:Version"
+    $Script:MainForm.BackColor = [System.Drawing.Color]::White
     $Script:MainForm.Size = New-Object System.Drawing.Size(900, 600)
     $Script:MainForm.StartPosition = "CenterScreen"
     $Script:MainForm.FormBorderStyle = "FixedDialog"
@@ -554,9 +562,12 @@ function Show-ToolkitGUI {
     $Script:ViewDocsButton.Size = New-Object System.Drawing.Size(290, 40)
     $Script:ViewDocsButton.Text = "📚 View Documentation"
     $Script:ViewDocsButton.Font = New-Object System.Drawing.Font("Segoe UI", 10)
-    $Script:ViewDocsButton.BackColor = [System.Drawing.Color]::FromArgb(33, 150, 243)
+    $Script:ViewDocsButton.BackColor = [System.Drawing.Color]::FromArgb(103, 58, 182)  # Bepoz Purple (#673AB6)
     $Script:ViewDocsButton.ForeColor = [System.Drawing.Color]::White
     $Script:ViewDocsButton.FlatStyle = "Flat"
+    $Script:ViewDocsButton.FlatAppearance.BorderSize = 0
+    $Script:ViewDocsButton.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(138, 168, 221)  # Bepoz Light Blue (#8AA8DD)
+    $Script:ViewDocsButton.Cursor = [System.Windows.Forms.Cursors]::Hand
     $Script:ViewDocsButton.Enabled = $false
     $Script:ViewDocsButton.Add_Click({ Open-ToolDocumentation })
     $detailsPanel.Controls.Add($Script:ViewDocsButton)
@@ -566,9 +577,12 @@ function Show-ToolkitGUI {
     $Script:RunButton.Size = New-Object System.Drawing.Size(290, 50)
     $Script:RunButton.Text = "Run Tool"
     $Script:RunButton.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
-    $Script:RunButton.BackColor = [System.Drawing.Color]::FromArgb(76, 175, 80)
+    $Script:RunButton.BackColor = [System.Drawing.Color]::FromArgb(10, 124, 72)  # Bepoz Green (#0A7C48)
     $Script:RunButton.ForeColor = [System.Drawing.Color]::White
     $Script:RunButton.FlatStyle = "Flat"
+    $Script:RunButton.FlatAppearance.BorderSize = 0
+    $Script:RunButton.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(138, 168, 221)  # Bepoz Light Blue (#8AA8DD)
+    $Script:RunButton.Cursor = [System.Windows.Forms.Cursors]::Hand
     $Script:RunButton.Enabled = $false
     $Script:RunButton.Add_Click({ Invoke-SelectedTool })
     $detailsPanel.Controls.Add($Script:RunButton)
@@ -589,6 +603,12 @@ function Show-ToolkitGUI {
     $Script:RefreshButton.Location = New-Object System.Drawing.Point(610, 0)
     $Script:RefreshButton.Size = New-Object System.Drawing.Size(120, 30)
     $Script:RefreshButton.Text = "Refresh"
+    $Script:RefreshButton.BackColor = [System.Drawing.Color]::FromArgb(128, 128, 128)  # Bepoz Gray (#808080)
+    $Script:RefreshButton.ForeColor = [System.Drawing.Color]::White
+    $Script:RefreshButton.FlatStyle = "Flat"
+    $Script:RefreshButton.FlatAppearance.BorderSize = 0
+    $Script:RefreshButton.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(138, 168, 221)  # Bepoz Light Blue
+    $Script:RefreshButton.Cursor = [System.Windows.Forms.Cursors]::Hand
     $Script:RefreshButton.Add_Click({
         Write-Log "Refreshing manifest..." -Level INFO
         Remove-Item (Join-Path $Script:TempDir "manifest.json") -Force -ErrorAction SilentlyContinue
@@ -603,6 +623,12 @@ function Show-ToolkitGUI {
     $viewLogsButton.Location = New-Object System.Drawing.Point(480, 0)
     $viewLogsButton.Size = New-Object System.Drawing.Size(120, 30)
     $viewLogsButton.Text = "View Logs"
+    $viewLogsButton.BackColor = [System.Drawing.Color]::FromArgb(103, 58, 182)  # Bepoz Purple (#673AB6)
+    $viewLogsButton.ForeColor = [System.Drawing.Color]::White
+    $viewLogsButton.FlatStyle = "Flat"
+    $viewLogsButton.FlatAppearance.BorderSize = 0
+    $viewLogsButton.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(138, 168, 221)  # Bepoz Light Blue
+    $viewLogsButton.Cursor = [System.Windows.Forms.Cursors]::Hand
     $viewLogsButton.Add_Click({
         $logDir = "C:\Bepoz\Toolkit\Logs"
 
@@ -642,6 +668,12 @@ function Show-ToolkitGUI {
     $closeButton.Location = New-Object System.Drawing.Point(740, 0)
     $closeButton.Size = New-Object System.Drawing.Size(120, 30)
     $closeButton.Text = "Close"
+    $closeButton.BackColor = [System.Drawing.Color]::FromArgb(128, 128, 128)  # Bepoz Gray (#808080)
+    $closeButton.ForeColor = [System.Drawing.Color]::White
+    $closeButton.FlatStyle = "Flat"
+    $closeButton.FlatAppearance.BorderSize = 0
+    $closeButton.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(138, 168, 221)  # Bepoz Light Blue
+    $closeButton.Cursor = [System.Windows.Forms.Cursors]::Hand
     $closeButton.Add_Click({
         $Script:MainForm.Close()
     })
