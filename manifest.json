@@ -1,10 +1,10 @@
 {
   "bootstrap": {
-    "version": "1.0.0",
+    "version": "1.2.0",
     "cli": "bootstrap/Invoke-BepozToolkit.ps1",
     "gui": "bootstrap/Invoke-BepozToolkit-GUI.ps1",
     "minPowerShellVersion": "5.1",
-    "description": "Two versions available: CLI (command-line menu) and GUI (Windows Forms interface)"
+    "description": "Two versions available: CLI (command-line menu) and GUI (Windows Forms interface with official Bepoz theming)"
   },
   "modules": {
     "BepozDbCore": {
