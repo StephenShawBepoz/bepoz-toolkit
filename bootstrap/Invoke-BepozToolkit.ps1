@@ -22,7 +22,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$GitHubOrg = "your-github-org",
+    [string]$GitHubOrg = "StephenShawBepoz",
     [string]$GitHubRepo = "bepoz-toolkit",
     [string]$Branch = "main"
 )
