@@ -200,6 +200,37 @@ Write-Host ""
 
 #endregion
 
+#region BepozLogger Module Loading
+
+# Load BepozLogger for centralized logging
+$loggerModule = Get-ChildItem -Path $env:TEMP -Filter "BepozLogger.ps1" -ErrorAction SilentlyContinue |
+                Sort-Object LastWriteTime -Descending |
+                Select-Object -First 1
+
+if ($loggerModule) {
+    try {
+        . $loggerModule.FullName
+        $logFile = Initialize-BepozLogger -ToolName "BepozWeekScheduleBulkManager"
+        Write-Host "[✓] Logging initialized: $logFile" -ForegroundColor Green
+        Write-Host ""
+
+        # Log tool startup
+        Write-BepozLogAction "Tool started"
+    }
+    catch {
+        Write-Host "[!] Logger module found but failed to load: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "[!] Continuing without logging..." -ForegroundColor Yellow
+    }
+}
+else {
+    Write-Host "[!] BepozLogger module not found (optional)" -ForegroundColor Yellow
+    Write-Host "[!] Tool will run without centralized logging" -ForegroundColor Yellow
+}
+
+Write-Host ""
+
+#endregion
+
 #region Database Initialization
 
 # Get database connection info from BepozDbCore
@@ -1122,11 +1153,17 @@ function Show-WeekScheduleManager {
     $cmbVenue.Add_SelectedIndexChanged({
         $venueID = Get-ComboBoxItemValue $cmbVenue.SelectedItem
         if ($cmbVenue.SelectedItem -and $venueID -gt 0) {
-            
+
+            # Log venue selection
+            if (Get-Command -Name Write-BepozLogAction -ErrorAction SilentlyContinue) {
+                $venueName = Get-ComboBoxItemText $cmbVenue.SelectedItem
+                Write-BepozLogAction "User selected venue: $venueName (ID: $venueID)"
+            }
+
             try {
                 $statusLabel.Text = 'Loading venue configuration...'
                 $form.Refresh()
-                
+
                 Write-Host "`nLoading configuration for VenueID: $venueID" -ForegroundColor Yellow
                 
                 # Load stores
@@ -2019,26 +2056,36 @@ WORKSTATIONS TO PROCESS ($($selectedWorkstations.Count)):
     # Apply Changes
     $btnApply.Add_Click({
         try {
+            # Log user action
+            if (Get-Command -Name Write-BepozLogAction -ErrorAction SilentlyContinue) {
+                Write-BepozLogAction "User clicked 'Apply' button"
+            }
+
             # Validation
             if (-not $cmbVenue.SelectedItem) {
                 [System.Windows.Forms.MessageBox]::Show('Please select a venue', 'Validation', 'OK', 'Warning')
                 return
             }
-            
+
             $selectedWorkstations = @()
             for ($i = 0; $i -lt $clbWorkstations.CheckedItems.Count; $i++) {
                 $selectedWorkstations += $clbWorkstations.CheckedItems[$i]
             }
-            
+
             if ($selectedWorkstations.Count -eq 0) {
                 [System.Windows.Forms.MessageBox]::Show('Please select at least one workstation', 'Validation', 'OK', 'Warning')
                 return
             }
-            
+
             # Get selected days
             $selectedDays = @()
             for ($i = 0; $i -lt $clbDays.CheckedItems.Count; $i++) {
                 $selectedDays += $clbDays.CheckedItems[$i]
+            }
+
+            # Log operation details
+            if (Get-Command -Name Write-BepozLogAction -ErrorAction SilentlyContinue) {
+                Write-BepozLogAction "Apply operation: $($selectedWorkstations.Count) workstations, $($selectedDays.Count) days"
             }
             
             if ($selectedDays.Count -eq 0) {
@@ -2167,7 +2214,12 @@ WORKSTATIONS TO PROCESS ($($selectedWorkstations.Count)):
             if ($errorCount -gt 0) {
                 Write-Host "Errors: $errorCount" -ForegroundColor Red
             }
-            
+
+            # Log operation results
+            if (Get-Command -Name Write-BepozLogAction -ErrorAction SilentlyContinue) {
+                Write-BepozLogAction "Apply completed: Inserted=$insertCount, Updated=$updateCount, Errors=$errorCount"
+            }
+
             $statusLabel.Text = "Completed: $insertCount inserted, $updateCount updated, $errorCount errors"
             
             [System.Windows.Forms.MessageBox]::Show(
@@ -2186,6 +2238,12 @@ WORKSTATIONS TO PROCESS ($($selectedWorkstations.Count)):
         }
         catch {
             $statusLabel.Text = 'Error applying changes'
+
+            # Log error
+            if (Get-Command -Name Write-BepozLogError -ErrorAction SilentlyContinue) {
+                Write-BepozLogError -Message "Apply operation failed" -Exception $_.Exception
+            }
+
             [System.Windows.Forms.MessageBox]::Show(
                 "Failed to apply changes: $($_.Exception.Message)",
                 'Error',
@@ -2194,9 +2252,14 @@ WORKSTATIONS TO PROCESS ($($selectedWorkstations.Count)):
             )
         }
     })
-    
+
     # Delete Schedules
     $btnDelete.Add_Click({
+        # Log user action
+        if (Get-Command -Name Write-BepozLogAction -ErrorAction SilentlyContinue) {
+            Write-BepozLogAction "User clicked 'Delete' button"
+        }
+
         try {
             # Validation
             if (-not $cmbVenue.SelectedItem) {
@@ -2222,11 +2285,20 @@ WORKSTATIONS TO PROCESS ($($selectedWorkstations.Count)):
             $confirmMsg += "Are you sure?"
             
             $result = [System.Windows.Forms.MessageBox]::Show($confirmMsg, 'Confirm Deletion', 'YesNo', 'Warning')
-            
+
             if ($result -ne 'Yes') {
+                if (Get-Command -Name Write-BepozLogAction -ErrorAction SilentlyContinue) {
+                    Write-BepozLogAction "User cancelled delete operation"
+                }
                 return
             }
-            
+
+            # Log confirmed operation details
+            if (Get-Command -Name Write-BepozLogAction -ErrorAction SilentlyContinue) {
+                $venueName = Get-ComboBoxItemText $cmbVenue.SelectedItem
+                Write-BepozLogAction "Delete operation confirmed: $($selectedWorkstations.Count) workstations for venue '$venueName'"
+            }
+
             $statusLabel.Text = 'Deleting schedules...'
             $form.Refresh()
             
@@ -2262,7 +2334,12 @@ WORKSTATIONS TO PROCESS ($($selectedWorkstations.Count)):
             }
             
             $statusLabel.Text = "Deleted $deleteCount record(s) from $($selectedWorkstations.Count) workstation(s)"
-            
+
+            # Log completion
+            if (Get-Command -Name Write-BepozLogAction -ErrorAction SilentlyContinue) {
+                Write-BepozLogAction "Delete completed: Deleted=$deleteCount, Workstations=$($selectedWorkstations.Count), Errors=$errorCount"
+            }
+
             [System.Windows.Forms.MessageBox]::Show(
                 "WeekSchedule records deleted!`n`n" +
                 "Total records deleted: $deleteCount`n" +
@@ -2275,6 +2352,12 @@ WORKSTATIONS TO PROCESS ($($selectedWorkstations.Count)):
         }
         catch {
             $statusLabel.Text = 'Error deleting schedules'
+
+            # Log error
+            if (Get-Command -Name Write-BepozLogError -ErrorAction SilentlyContinue) {
+                Write-BepozLogError -Message "Delete operation failed" -Exception $_.Exception
+            }
+
             [System.Windows.Forms.MessageBox]::Show(
                 "Failed to delete schedules: $($_.Exception.Message)",
                 'Error',
@@ -2286,6 +2369,9 @@ WORKSTATIONS TO PROCESS ($($selectedWorkstations.Count)):
     
     # Close button
     $btnClose.Add_Click({
+        if (Get-Command -Name Write-BepozLogAction -ErrorAction SilentlyContinue) {
+            Write-BepozLogAction "User closed tool"
+        }
         $form.Close()
     })
     
@@ -2311,7 +2397,12 @@ try {
 catch {
     Write-Host "`nFATAL ERROR: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host "Stack Trace: $($_.ScriptStackTrace)" -ForegroundColor Gray
-    
+
+    # Log fatal error
+    if (Get-Command -Name Write-BepozLogError -ErrorAction SilentlyContinue) {
+        Write-BepozLogError -Message "Fatal error in tool execution" -Exception $_.Exception -StackTrace $_.ScriptStackTrace
+    }
+
     [System.Windows.Forms.MessageBox]::Show(
         "Fatal error:`n`n$($_.Exception.Message)`n`nSee console for details.",
         'Fatal Error',
