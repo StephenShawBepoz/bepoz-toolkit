@@ -16,10 +16,16 @@
 .PARAMETER Branch
     Git branch to use (default: main)
 .NOTES
-    Version: 1.2.0
+    Version: 1.3.0
     Author: Bepoz Support Team
     Last Updated: 2026-02-11
     Requires: PowerShell 5.1+, Windows Forms
+
+    Changes in v1.3.0:
+    - Fixed View Logs button rendering (was showing as 2 lines instead of box)
+    - Added automatic module downloading for tools requiring database access
+    - BepozDbCore and BepozLogger modules now downloaded before tool execution
+    - Tools with requiresDatabase flag now work properly from GUI
 
     Changes in v1.2.0:
     - Added official Bepoz color palette to all buttons
@@ -41,7 +47,7 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 #region Configuration
-$Script:Version = "1.2.0"
+$Script:Version = "1.3.0"
 $Script:TempDir = Join-Path $env:TEMP "BepozToolkit_$([guid]::NewGuid().ToString().Substring(0,8))"
 $Script:LogFile = Join-Path $env:TEMP "BepozToolkit.log"
 $Script:BaseUrl = "https://raw.githubusercontent.com/$GitHubOrg/$GitHubRepo/$Branch"
@@ -295,10 +301,51 @@ function Invoke-SelectedTool {
     $Script:RefreshButton.Enabled = $false
     $Script:CategoryListBox.Enabled = $false
     $Script:ToolListBox.Enabled = $false
-    $Script:StatusLabel.Text = "Downloading tool..."
+    $Script:StatusLabel.Text = "Preparing tool..."
     $Script:MainForm.Refresh()
 
+    # Download required modules if tool needs database access
+    if ($tool.requiresDatabase) {
+        Write-Log "Tool requires database access - downloading modules..." -Level INFO
+        $Script:StatusLabel.Text = "Downloading required modules..."
+        $Script:MainForm.Refresh()
+
+        # Download BepozDbCore module (required for database access)
+        $dbCoreModule = Join-Path $env:TEMP "BepozDbCore.ps1"
+        $dbCoreSuccess = Get-FileFromGitHub -RelativePath $Script:Manifest.modules.BepozDbCore.file -Destination $dbCoreModule
+
+        if (-not $dbCoreSuccess) {
+            Write-Log "Failed to download BepozDbCore module" -Level ERROR
+            $Script:StatusLabel.Text = "Ready"
+            $Script:RunButton.Enabled = $true
+            $Script:RefreshButton.Enabled = $true
+            $Script:CategoryListBox.Enabled = $true
+            $Script:ToolListBox.Enabled = $true
+            [System.Windows.Forms.MessageBox]::Show(
+                "Failed to download required database module (BepozDbCore.ps1).`n`nThe tool cannot run without database access.",
+                "Module Download Failed",
+                [System.Windows.Forms.MessageBoxButtons]::OK,
+                [System.Windows.Forms.MessageBoxIcon]::Error
+            )
+            return
+        }
+
+        # Download BepozLogger module (optional but recommended)
+        $loggerModule = Join-Path $env:TEMP "BepozLogger.ps1"
+        $loggerSuccess = Get-FileFromGitHub -RelativePath $Script:Manifest.modules.BepozLogger.file -Destination $loggerModule
+
+        if ($loggerSuccess) {
+            Write-Log "Downloaded BepozLogger module" -Level SUCCESS
+        } else {
+            Write-Log "BepozLogger module download failed (optional - continuing)" -Level WARN
+        }
+
+        Write-Log "Required modules downloaded successfully" -Level SUCCESS
+    }
+
     # Download tool
+    $Script:StatusLabel.Text = "Downloading tool..."
+    $Script:MainForm.Refresh()
     $toolPath = Join-Path $Script:TempDir (Split-Path $tool.file -Leaf)
     $downloadSuccess = Get-FileFromGitHub -RelativePath $tool.file -Destination $toolPath
 
