@@ -13,6 +13,7 @@ The Bepoz Toolkit provides on-demand access to PowerShell tools for common Bepoz
 ## ✨ Key Features
 
 - 🎨 **Official Bepoz Theming** - Professional UI with official Bepoz color palette
+- 🔍 **Search & Filter** - Quickly find tools by name/description with real-time filtering
 - 🖥️ **GUI & CLI Versions** - Windows Forms GUI or command-line interface
 - 📥 **On-Demand Download** - Tools fetched fresh from GitHub every time
 - 🔄 **Auto-Update** - Bootstrap updates itself automatically
@@ -22,6 +23,7 @@ The Bepoz Toolkit provides on-demand access to PowerShell tools for common Bepoz
 - 🔌 **Modular Architecture** - Reusable database, logging, UI, and theme modules
 - 🧹 **Zero Installation** - No persistent files, everything cleans up
 - 🛡️ **Production Ready** - Full error handling and user confirmations
+- ⌨️ **Keyboard Shortcuts** - Ctrl+F (search), Ctrl+R (run), F5 (refresh), Esc (clear)
 - 🖥️ **ScreenConnect Compatible** - Deploy as saved script for instant access
 
 ---
@@ -36,8 +38,12 @@ The Bepoz Toolkit provides on-demand access to PowerShell tools for common Bepoz
    ```powershell
    irm https://raw.githubusercontent.com/StephenShawBepoz/bepoz-toolkit/main/bootstrap/Invoke-BepozToolkit-GUI.ps1 | iex
    ```
-4. **Click through the interface**:
+4. **Use the interface**:
    - Select category → Select tool → Click "Run Tool"
+   - **Search**: Type in the search box to filter tools by name/description
+   - **Filter**: Check boxes to filter by requirements (Admin, Database, Basic)
+   - **Clear**: Click "Clear" or press Escape to reset filters
+   - **Shortcuts**: Press Ctrl+F to search, Ctrl+R to run, F5 to refresh
    - Click "View Documentation" for help
    - Click "View Logs" to see operation history
 
@@ -63,6 +69,37 @@ Then select from text menus.
    Invoke-Expression (Invoke-RestMethod -Uri $BootstrapUrl -UseBasicParsing)
    ```
 4. Save and use whenever needed
+
+---
+
+## 🔍 Search & Filter Features
+
+The toolkit GUI includes powerful search and filtering to help you quickly find the right tool:
+
+### Search
+- **Real-time search** - Type in the search box to instantly filter tools
+- **Searches both** tool names and descriptions
+- **Case-insensitive** - Works regardless of capitalization
+- **Keyboard shortcut**: Press `Ctrl+F` to focus the search box
+
+### Filters
+- **Admin** - Show only tools requiring administrator privileges
+- **Database** - Show only tools requiring database access
+- **Basic** - Show only tools with no special requirements
+- **Combine filters** - Check multiple boxes to show tools matching any filter
+- **Tool count** - See how many tools match (e.g., "3 of 12 tools")
+
+### Quick Actions
+- **Clear button** - Reset all search and filters with one click
+- **Escape key** - Press `Esc` to clear search and filters
+- **F5 key** - Refresh tools from GitHub
+
+### Example Usage
+```
+Search "schedule" → Finds "WeekSchedule Bulk Manager"
+Check "Database" → Shows all tools needing database access
+Search "venue" + Check "Admin" → Tools about venues requiring admin
+```
 
 ---
 
@@ -535,6 +572,21 @@ Invoke-WebRequest -Uri $url -OutFile $dest -Headers $headers -UseBasicParsing
 ---
 
 ## 📝 Changelog
+
+### v1.4.0 (2026-02-12) - Search & Filter
+
+**New Features:**
+- ✅ Real-time search box to filter tools by name/description
+- ✅ Filter checkboxes for requiresAdmin, requiresDatabase, and basic tools
+- ✅ Tool count display showing filtered/total tools
+- ✅ Clear Filters button for quick reset
+- ✅ Keyboard shortcuts: Ctrl+F (search), Ctrl+R (run), F5 (refresh), Esc (clear)
+- ✅ Improved tool discovery UX
+
+**Benefits:**
+- Find tools faster in large toolkits
+- Filter by requirements before browsing
+- Better keyboard navigation support
 
 ### v1.2.0 (2026-02-11) - Official Bepoz Theming
 

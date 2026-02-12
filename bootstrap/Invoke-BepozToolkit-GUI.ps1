@@ -16,10 +16,17 @@
 .PARAMETER Branch
     Git branch to use (default: main)
 .NOTES
-    Version: 1.3.0
+    Version: 1.4.0
     Author: Bepoz Support Team
-    Last Updated: 2026-02-11
+    Last Updated: 2026-02-12
     Requires: PowerShell 5.1+, Windows Forms
+
+    Changes in v1.4.0:
+    - Added search functionality to filter tools by name/description
+    - Added filter checkboxes for requiresAdmin and requiresDatabase
+    - Added Clear Filters button
+    - Added tools count display
+    - Improved tool discovery UX
 
     Changes in v1.3.0:
     - Fixed View Logs button rendering (was showing as 2 lines instead of box)
@@ -47,7 +54,7 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 #region Configuration
-$Script:Version = "1.3.0"
+$Script:Version = "1.4.0"
 $Script:TempDir = Join-Path $env:TEMP "BepozToolkit_$([guid]::NewGuid().ToString().Substring(0,8))"
 $Script:LogFile = Join-Path $env:TEMP "BepozToolkit.log"
 $Script:BaseUrl = "https://raw.githubusercontent.com/$GitHubOrg/$GitHubRepo/$Branch"
@@ -55,6 +62,10 @@ $Script:DownloadedFiles = @()
 $Script:Manifest = $null
 $Script:SelectedCategory = $null
 $Script:SelectedTool = $null
+$Script:SearchText = ""
+$Script:FilterRequiresAdmin = $false
+$Script:FilterRequiresDatabase = $false
+$Script:FilterNoRequirements = $false
 #endregion
 
 #region Logging Functions
@@ -220,6 +231,31 @@ function Populate-Categories {
     }
 }
 
+function Apply-ToolFilters {
+    param($Tools)
+
+    $filtered = $Tools
+
+    # Apply search filter
+    if (-not [string]::IsNullOrWhiteSpace($Script:SearchText)) {
+        $filtered = $filtered | Where-Object {
+            $_.name -like "*$($Script:SearchText)*" -or
+            $_.description -like "*$($Script:SearchText)*"
+        }
+    }
+
+    # Apply requirement filters
+    if ($Script:FilterRequiresAdmin -or $Script:FilterRequiresDatabase -or $Script:FilterNoRequirements) {
+        $filtered = $filtered | Where-Object {
+            ($Script:FilterRequiresAdmin -and $_.requiresAdmin) -or
+            ($Script:FilterRequiresDatabase -and $_.requiresDatabase) -or
+            ($Script:FilterNoRequirements -and -not $_.requiresAdmin -and -not $_.requiresDatabase)
+        }
+    }
+
+    return $filtered
+}
+
 function Populate-Tools {
     param($Category)
 
@@ -228,16 +264,41 @@ function Populate-Tools {
     $Script:RunButton.Enabled = $false
     $Script:ViewDocsButton.Enabled = $false
 
-    if ($null -eq $Category) { return }
+    if ($null -eq $Category) {
+        if ($Script:ToolCountLabel) {
+            $Script:ToolCountLabel.Text = "0 tools"
+        }
+        return
+    }
 
+    # Get tools for category
     $tools = $Script:Manifest.tools | Where-Object { $_.category -eq $Category.id }
 
-    foreach ($tool in $tools) {
+    # Apply filters
+    $filteredTools = Apply-ToolFilters -Tools $tools
+
+    # Populate listbox
+    foreach ($tool in $filteredTools) {
         [void]$Script:ToolListBox.Items.Add($tool)
     }
 
+    # Update count
+    if ($Script:ToolCountLabel) {
+        $totalCount = $tools.Count
+        $filteredCount = $filteredTools.Count
+        if ($filteredCount -eq $totalCount) {
+            $Script:ToolCountLabel.Text = "$filteredCount tool$(if ($filteredCount -ne 1) {'s'})"
+        } else {
+            $Script:ToolCountLabel.Text = "$filteredCount of $totalCount tool$(if ($totalCount -ne 1) {'s'})"
+        }
+    }
+
     if ($Script:ToolListBox.Items.Count -eq 0) {
-        $Script:ToolDescriptionLabel.Text = "No tools available in this category yet"
+        if ($Script:SearchText -or $Script:FilterRequiresAdmin -or $Script:FilterRequiresDatabase -or $Script:FilterNoRequirements) {
+            $Script:ToolDescriptionLabel.Text = "No tools match the current filters"
+        } else {
+            $Script:ToolDescriptionLabel.Text = "No tools available in this category yet"
+        }
     }
 }
 
@@ -551,6 +612,58 @@ function Show-ToolkitGUI {
     $Script:MainForm.StartPosition = "CenterScreen"
     $Script:MainForm.FormBorderStyle = "FixedDialog"
     $Script:MainForm.MaximizeBox = $false
+    $Script:MainForm.KeyPreview = $true
+
+    # Add keyboard shortcuts
+    $Script:MainForm.Add_KeyDown({
+        param($sender, $e)
+
+        # Ctrl+F: Focus search box
+        if ($e.Control -and $e.KeyCode -eq 'F') {
+            $Script:SearchTextBox.Focus()
+            $Script:SearchTextBox.SelectAll()
+            $e.SuppressKeyPress = $true
+            Write-Log "Search focused (Ctrl+F)" -Level INFO
+        }
+
+        # Escape: Clear search and filters
+        if ($e.KeyCode -eq 'Escape') {
+            if ($Script:SearchTextBox.Focused) {
+                $Script:SearchTextBox.Text = ""
+            } else {
+                $Script:SearchTextBox.Text = ""
+                $Script:SearchText = ""
+                $Script:FilterAdminCheckBox.Checked = $false
+                $Script:FilterDatabaseCheckBox.Checked = $false
+                $Script:FilterNoReqCheckBox.Checked = $false
+                $Script:FilterRequiresAdmin = $false
+                $Script:FilterRequiresDatabase = $false
+                $Script:FilterNoRequirements = $false
+                Populate-Tools -Category $Script:SelectedCategory
+                Write-Log "Filters cleared (Escape)" -Level INFO
+            }
+            $e.SuppressKeyPress = $true
+        }
+
+        # Ctrl+R: Run selected tool
+        if ($e.Control -and $e.KeyCode -eq 'R') {
+            if ($Script:RunButton.Enabled) {
+                Invoke-SelectedTool
+                $e.SuppressKeyPress = $true
+            }
+        }
+
+        # F5: Refresh manifest
+        if ($e.KeyCode -eq 'F5') {
+            Write-Log "Refreshing manifest (F5)..." -Level INFO
+            Remove-Item (Join-Path $Script:TempDir "manifest.json") -Force -ErrorAction SilentlyContinue
+            if (Initialize-Manifest) {
+                Populate-Categories
+                Write-Log "Manifest refreshed" -Level SUCCESS
+            }
+            $e.SuppressKeyPress = $true
+        }
+    })
 
     # Category panel (left side)
     $categoryPanel = New-Object System.Windows.Forms.Panel
@@ -584,13 +697,112 @@ function Show-ToolkitGUI {
     $toolLabel = New-Object System.Windows.Forms.Label
     $toolLabel.Text = "Tools"
     $toolLabel.Location = New-Object System.Drawing.Point(5, 5)
-    $toolLabel.Size = New-Object System.Drawing.Size(290, 20)
+    $toolLabel.Size = New-Object System.Drawing.Size(150, 20)
     $toolLabel.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
     $toolPanel.Controls.Add($toolLabel)
 
+    # Tool count label
+    $Script:ToolCountLabel = New-Object System.Windows.Forms.Label
+    $Script:ToolCountLabel.Location = New-Object System.Drawing.Point(160, 7)
+    $Script:ToolCountLabel.Size = New-Object System.Drawing.Size(135, 16)
+    $Script:ToolCountLabel.Text = "0 tools"
+    $Script:ToolCountLabel.Font = New-Object System.Drawing.Font("Segoe UI", 8)
+    $Script:ToolCountLabel.ForeColor = [System.Drawing.Color]::Gray
+    $Script:ToolCountLabel.TextAlign = "TopRight"
+    $toolPanel.Controls.Add($Script:ToolCountLabel)
+
+    # Search box
+    $searchLabel = New-Object System.Windows.Forms.Label
+    $searchLabel.Location = New-Object System.Drawing.Point(5, 30)
+    $searchLabel.Size = New-Object System.Drawing.Size(50, 20)
+    $searchLabel.Text = "Search:"
+    $searchLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+    $toolPanel.Controls.Add($searchLabel)
+
+    $Script:SearchTextBox = New-Object System.Windows.Forms.TextBox
+    $Script:SearchTextBox.Location = New-Object System.Drawing.Point(60, 28)
+    $Script:SearchTextBox.Size = New-Object System.Drawing.Size(235, 22)
+    $Script:SearchTextBox.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+    $Script:SearchTextBox.Add_TextChanged({
+        $Script:SearchText = $Script:SearchTextBox.Text
+        Populate-Tools -Category $Script:SelectedCategory
+    })
+    $toolPanel.Controls.Add($Script:SearchTextBox)
+
+    # Filter panel
+    $filterLabel = New-Object System.Windows.Forms.Label
+    $filterLabel.Location = New-Object System.Drawing.Point(5, 55)
+    $filterLabel.Size = New-Object System.Drawing.Size(50, 20)
+    $filterLabel.Text = "Filters:"
+    $filterLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+    $toolPanel.Controls.Add($filterLabel)
+
+    # Requires Admin checkbox
+    $Script:FilterAdminCheckBox = New-Object System.Windows.Forms.CheckBox
+    $Script:FilterAdminCheckBox.Location = New-Object System.Drawing.Point(60, 55)
+    $Script:FilterAdminCheckBox.Size = New-Object System.Drawing.Size(75, 20)
+    $Script:FilterAdminCheckBox.Text = "Admin"
+    $Script:FilterAdminCheckBox.Font = New-Object System.Drawing.Font("Segoe UI", 8)
+    $Script:FilterAdminCheckBox.Add_CheckedChanged({
+        $Script:FilterRequiresAdmin = $Script:FilterAdminCheckBox.Checked
+        Populate-Tools -Category $Script:SelectedCategory
+    })
+    $toolPanel.Controls.Add($Script:FilterAdminCheckBox)
+
+    # Requires Database checkbox
+    $Script:FilterDatabaseCheckBox = New-Object System.Windows.Forms.CheckBox
+    $Script:FilterDatabaseCheckBox.Location = New-Object System.Drawing.Point(140, 55)
+    $Script:FilterDatabaseCheckBox.Size = New-Object System.Drawing.Size(70, 20)
+    $Script:FilterDatabaseCheckBox.Text = "Database"
+    $Script:FilterDatabaseCheckBox.Font = New-Object System.Drawing.Font("Segoe UI", 8)
+    $Script:FilterDatabaseCheckBox.Add_CheckedChanged({
+        $Script:FilterRequiresDatabase = $Script:FilterDatabaseCheckBox.Checked
+        Populate-Tools -Category $Script:SelectedCategory
+    })
+    $toolPanel.Controls.Add($Script:FilterDatabaseCheckBox)
+
+    # No Requirements checkbox
+    $Script:FilterNoReqCheckBox = New-Object System.Windows.Forms.CheckBox
+    $Script:FilterNoReqCheckBox.Location = New-Object System.Drawing.Point(215, 55)
+    $Script:FilterNoReqCheckBox.Size = New-Object System.Drawing.Size(80, 20)
+    $Script:FilterNoReqCheckBox.Text = "Basic"
+    $Script:FilterNoReqCheckBox.Font = New-Object System.Drawing.Font("Segoe UI", 8)
+    $Script:FilterNoReqCheckBox.Add_CheckedChanged({
+        $Script:FilterNoRequirements = $Script:FilterNoReqCheckBox.Checked
+        Populate-Tools -Category $Script:SelectedCategory
+    })
+    $toolPanel.Controls.Add($Script:FilterNoReqCheckBox)
+
+    # Clear filters button
+    $clearFiltersButton = New-Object System.Windows.Forms.Button
+    $clearFiltersButton.Location = New-Object System.Drawing.Point(215, 28)
+    $clearFiltersButton.Size = New-Object System.Drawing.Size(80, 22)
+    $clearFiltersButton.Text = "Clear"
+    $clearFiltersButton.Font = New-Object System.Drawing.Font("Segoe UI", 8)
+    $clearFiltersButton.BackColor = [System.Drawing.Color]::FromArgb(128, 128, 128)
+    $clearFiltersButton.ForeColor = [System.Drawing.Color]::White
+    $clearFiltersButton.FlatStyle = "Flat"
+    $clearFiltersButton.FlatAppearance.BorderSize = 0
+    $clearFiltersButton.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(138, 168, 221)
+    $clearFiltersButton.Cursor = [System.Windows.Forms.Cursors]::Hand
+    $clearFiltersButton.Add_Click({
+        $Script:SearchTextBox.Text = ""
+        $Script:SearchText = ""
+        $Script:FilterAdminCheckBox.Checked = $false
+        $Script:FilterDatabaseCheckBox.Checked = $false
+        $Script:FilterNoReqCheckBox.Checked = $false
+        $Script:FilterRequiresAdmin = $false
+        $Script:FilterRequiresDatabase = $false
+        $Script:FilterNoRequirements = $false
+        Populate-Tools -Category $Script:SelectedCategory
+        Write-Log "Filters cleared" -Level INFO
+    })
+    $toolPanel.Controls.Add($clearFiltersButton)
+
+    # Tool list box (adjusted position and size)
     $Script:ToolListBox = New-Object System.Windows.Forms.ListBox
-    $Script:ToolListBox.Location = New-Object System.Drawing.Point(5, 30)
-    $Script:ToolListBox.Size = New-Object System.Drawing.Size(290, 445)
+    $Script:ToolListBox.Location = New-Object System.Drawing.Point(5, 80)
+    $Script:ToolListBox.Size = New-Object System.Drawing.Size(290, 395)
     $Script:ToolListBox.DisplayMember = "name"
     $Script:ToolListBox.Add_SelectedIndexChanged({
         Update-ToolDetails -Tool $Script:ToolListBox.SelectedItem
