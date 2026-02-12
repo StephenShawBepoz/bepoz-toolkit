@@ -42,7 +42,7 @@
       "category": "scheduling",
       "file": "tools/BepozWeekScheduleBulkManager.ps1",
       "description": "GUI tool for bulk insertion/update/deletion of WeekSchedule records across multiple workstations",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "requiresAdmin": false,
       "requiresDatabase": true,
       "author": "Bepoz Administration Team",

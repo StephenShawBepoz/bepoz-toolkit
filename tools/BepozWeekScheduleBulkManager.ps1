@@ -10,11 +10,12 @@
     Version 2.0 - Now uses centralized BepozDbCore module for database operations.
 .NOTES
     Author: Bepoz Administration Team
-    Version: 2.0.0
+    Version: 2.0.1
     PowerShell Version: 5.1+
     Dependencies: BepozDbCore.ps1 (loaded from temp directory by toolkit)
-    
+
     Changelog:
+    - 2.0.1: Fixed PowerShell encoding issues (replaced Unicode characters with ASCII)
     - 2.0.0: Migrated to use centralized BepozDbCore module
     - 1.1.0: Added KioskID support for DataVer >= 4729
     - 1.0.0: Initial release with embedded database code
@@ -122,11 +123,11 @@ function Get-BepozDbModule {
 
     # Check if already loaded
     if (Get-Command -Name Invoke-BepozQuery -ErrorAction SilentlyContinue) {
-        Write-Host "[✓] BepozDbCore module already loaded" -ForegroundColor Green
+        Write-Host "[OK] BepozDbCore module already loaded" -ForegroundColor Green
         return $true
     }
 
-    Write-Host "[i] Loading BepozDbCore module..." -ForegroundColor Cyan
+    Write-Host "[INFO] Loading BepozDbCore module..." -ForegroundColor Cyan
 
     # Try to find module in temp directory (downloaded by toolkit)
     $tempModule = Get-ChildItem -Path $env:TEMP -Filter "BepozDbCore.ps1" -ErrorAction SilentlyContinue |
@@ -136,7 +137,7 @@ function Get-BepozDbModule {
     if ($tempModule) {
         try {
             . $tempModule.FullName
-            Write-Host "[✓] Loaded BepozDbCore from: $($tempModule.FullName)" -ForegroundColor Green
+            Write-Host "[OK] Loaded BepozDbCore from: $($tempModule.FullName)" -ForegroundColor Green
             
             # Verify key functions are available
             $requiredFunctions = @('Invoke-BepozQuery', 'Invoke-BepozNonQuery', 'Get-BepozDbInfo')
@@ -145,22 +146,22 @@ function Get-BepozDbModule {
             }
             
             if ($missingFunctions.Count -gt 0) {
-                Write-Host "[✗] Module loaded but missing functions: $($missingFunctions -join ', ')" -ForegroundColor Red
+                Write-Host "[ERROR] Module loaded but missing functions: $($missingFunctions -join ', ')" -ForegroundColor Red
                 return $false
             }
             
             return $true
         } 
         catch {
-            Write-Host "[✗] Failed to load BepozDbCore: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "[ERROR] Failed to load BepozDbCore: $($_.Exception.Message)" -ForegroundColor Red
             return $false
         }
     }
 
     # Module not found
-    Write-Host "(!) BepozDbCore module not found in temp directory" -ForegroundColor Yellow
-    Write-Host "(!) Expected location: $env:TEMP\BepozDbCore.ps1" -ForegroundColor Yellow
-    Write-Host "(!) This tool requires database access to function" -ForegroundColor Yellow
+    Write-Host "WARNING: BepozDbCore module not found in temp directory" -ForegroundColor Yellow
+    Write-Host "WARNING: Expected location: $env:TEMP\BepozDbCore.ps1" -ForegroundColor Yellow
+    Write-Host "WARNING: This tool requires database access to function" -ForegroundColor Yellow
     return $false
 }
 
@@ -211,20 +212,20 @@ if ($loggerModule) {
     try {
         . $loggerModule.FullName
         $logFile = Initialize-BepozLogger -ToolName "BepozWeekScheduleBulkManager"
-        Write-Host "[✓] Logging initialized: $logFile" -ForegroundColor Green
+        Write-Host "[OK] Logging initialized: $logFile" -ForegroundColor Green
         Write-Host ""
 
         # Log tool startup
         Write-BepozLogAction "Tool started"
     }
     catch {
-        Write-Host "(!) Logger module found but failed to load: $($_.Exception.Message)" -ForegroundColor Yellow
-        Write-Host "(!) Continuing without logging..." -ForegroundColor Yellow
+        Write-Host "WARNING: Logger module found but failed to load: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "WARNING: Continuing without logging..." -ForegroundColor Yellow
     }
 }
 else {
-    Write-Host "(!) BepozLogger module not found (optional)" -ForegroundColor Yellow
-    Write-Host "(!) Tool will run without centralized logging" -ForegroundColor Yellow
+    Write-Host "NOTE: BepozLogger module not found (optional)" -ForegroundColor Yellow
+    Write-Host "NOTE: Tool will run without centralized logging" -ForegroundColor Yellow
 }
 
 Write-Host ""
@@ -239,7 +240,7 @@ try {
     $dbInfo = Get-BepozDbInfo -ApplicationName "BepozWeekScheduleManager"
     $script:ConnectionString = $dbInfo.ConnectionString
     
-    Write-Host "[✓] Database connection initialized" -ForegroundColor Green
+    Write-Host "[OK] Database connection initialized" -ForegroundColor Green
     Write-Host "    Server: $($dbInfo.Server)" -ForegroundColor Gray
     Write-Host "    Database: $($dbInfo.Database)" -ForegroundColor Gray
     Write-Host ""
@@ -2016,7 +2017,7 @@ WORKSTATIONS TO PROCESS ($($selectedWorkstations.Count)):
             $previewText += "`n  New records to INSERT: $insertCount"
             $previewText += "`n  Existing records to UPDATE: $updateCount"
             $previewText += "`n  Total operations: $($insertCount + $updateCount)"
-            $previewText += "`n  (Workstations × Days = $($selectedWorkstations.Count) × $($selectedDays.Count))"
+            $previewText += "`n  (Workstations x Days = $($selectedWorkstations.Count) x $($selectedDays.Count))"
             
             # Show preview dialog
             $previewForm = New-Object System.Windows.Forms.Form
