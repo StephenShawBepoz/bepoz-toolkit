@@ -121,8 +121,10 @@ function Get-FileFromGitHub {
         [string]$Destination
     )
 
-    $url = "$Script:BaseUrl/$RelativePath"
-    Write-Log "Downloading: $url" -Level INFO
+    # Add cache-buster to force fresh downloads
+    $cacheBuster = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+    $url = "$Script:BaseUrl/$RelativePath?t=$cacheBuster"
+    Write-Log "Downloading: $Script:BaseUrl/$RelativePath" -Level INFO
 
     try {
         $ProgressPreference = 'SilentlyContinue'
