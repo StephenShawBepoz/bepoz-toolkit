@@ -158,9 +158,9 @@ function Get-BepozDbModule {
     }
 
     # Module not found
-    Write-Host "[!] BepozDbCore module not found in temp directory" -ForegroundColor Yellow
-    Write-Host "[!] Expected location: $env:TEMP\BepozDbCore.ps1" -ForegroundColor Yellow
-    Write-Host "[!] This tool requires database access to function" -ForegroundColor Yellow
+    Write-Host "(!) BepozDbCore module not found in temp directory" -ForegroundColor Yellow
+    Write-Host "(!) Expected location: $env:TEMP\BepozDbCore.ps1" -ForegroundColor Yellow
+    Write-Host "(!) This tool requires database access to function" -ForegroundColor Yellow
     return $false
 }
 
@@ -218,13 +218,13 @@ if ($loggerModule) {
         Write-BepozLogAction "Tool started"
     }
     catch {
-        Write-Host "[!] Logger module found but failed to load: $($_.Exception.Message)" -ForegroundColor Yellow
-        Write-Host "[!] Continuing without logging..." -ForegroundColor Yellow
+        Write-Host "(!) Logger module found but failed to load: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "(!) Continuing without logging..." -ForegroundColor Yellow
     }
 }
 else {
-    Write-Host "[!] BepozLogger module not found (optional)" -ForegroundColor Yellow
-    Write-Host "[!] Tool will run without centralized logging" -ForegroundColor Yellow
+    Write-Host "(!) BepozLogger module not found (optional)" -ForegroundColor Yellow
+    Write-Host "(!) Tool will run without centralized logging" -ForegroundColor Yellow
 }
 
 Write-Host ""

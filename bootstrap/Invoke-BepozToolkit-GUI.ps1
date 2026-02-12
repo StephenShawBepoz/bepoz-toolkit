@@ -261,13 +261,13 @@ Category: $($Tool.category)
 "@
 
     if ($Tool.requiresAdmin) {
-        $details += "`n⚠ Requires Administrator"
+        $details += "`n[!] Requires Administrator"
     }
     if ($Tool.requiresDatabase) {
-        $details += "`n🗄 Requires Database Access"
+        $details += "`n[DB] Requires Database Access"
     }
     if ($Tool.documentation) {
-        $details += "`n`n📚 Documentation Available"
+        $details += "`n`n[Docs] Documentation Available"
     }
 
     $Script:ToolDescriptionLabel.Text = $details
@@ -387,11 +387,23 @@ function Invoke-SelectedTool {
         Write-Log "Tool process started (PID: $($process.Id))" -Level INFO
         $Script:StatusLabel.Text = "Tool is running (see console window)..."
 
+        # Capture output and errors
+        $stdout = $process.StandardOutput.ReadToEnd()
+        $stderr = $process.StandardError.ReadToEnd()
+
         # Wait for process to complete
         $process.WaitForExit()
 
         $exitCode = $process.ExitCode
         Write-Log "Tool completed with exit code: $exitCode" -Level $(if ($exitCode -eq 0) { 'SUCCESS' } else { 'WARN' })
+
+        # Log captured output
+        if ($stdout) {
+            Write-Log "Tool output: $stdout" -Level INFO
+        }
+        if ($stderr) {
+            Write-Log "Tool errors: $stderr" -Level ERROR
+        }
 
         if ($exitCode -eq 0) {
             $Script:StatusLabel.Text = "Tool completed successfully"
@@ -402,12 +414,16 @@ function Invoke-SelectedTool {
                 [System.Windows.Forms.MessageBoxIcon]::Information
             )
         } else {
-            $Script:StatusLabel.Text = "Tool completed with warnings"
+            $Script:StatusLabel.Text = "Tool completed with errors"
+            $errorMsg = "Tool completed with exit code: $exitCode"
+            if ($stderr) {
+                $errorMsg += "`n`nError details:`n$stderr"
+            }
             [System.Windows.Forms.MessageBox]::Show(
-                "Tool completed with exit code: $exitCode`n`nCheck the log for details.",
-                "Warning",
+                $errorMsg,
+                "Error",
                 [System.Windows.Forms.MessageBoxButtons]::OK,
-                [System.Windows.Forms.MessageBoxIcon]::Warning
+                [System.Windows.Forms.MessageBoxIcon]::Error
             )
         }
 
@@ -607,7 +623,7 @@ function Show-ToolkitGUI {
     $Script:ViewDocsButton = New-Object System.Windows.Forms.Button
     $Script:ViewDocsButton.Location = New-Object System.Drawing.Point(5, 370)
     $Script:ViewDocsButton.Size = New-Object System.Drawing.Size(290, 40)
-    $Script:ViewDocsButton.Text = "📚 View Documentation"
+    $Script:ViewDocsButton.Text = "View Documentation"
     $Script:ViewDocsButton.Font = New-Object System.Drawing.Font("Segoe UI", 10)
     $Script:ViewDocsButton.BackColor = [System.Drawing.Color]::FromArgb(103, 58, 182)  # Bepoz Purple (#673AB6)
     $Script:ViewDocsButton.ForeColor = [System.Drawing.Color]::White
