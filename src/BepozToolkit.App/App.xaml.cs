@@ -18,6 +18,30 @@ public partial class App : Application
     private ServiceProvider? _serviceProvider;
 
     /// <summary>
+    /// Static constructor runs before ANY instance code, including XAML parsing.
+    /// This catches crashes during App.xaml initialization.
+    /// </summary>
+    static App()
+    {
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            var ex = args.ExceptionObject as Exception;
+            var msg = ex?.ToString() ?? args.ExceptionObject?.ToString() ?? "Unknown fatal error";
+            var crashPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "BepozToolkit", "crash.log");
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(crashPath)!);
+                File.WriteAllText(crashPath, $"[{DateTime.Now:O}]\n{msg}");
+            }
+            catch { /* last resort - can't even write */ }
+
+            MessageBox.Show(msg, "Bepoz Toolkit - Fatal Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        };
+    }
+
+    /// <summary>
     /// Global access to the DI container for places where constructor injection
     /// is not feasible (e.g., XAML converters, design-time view models).
     /// Prefer constructor injection everywhere else.

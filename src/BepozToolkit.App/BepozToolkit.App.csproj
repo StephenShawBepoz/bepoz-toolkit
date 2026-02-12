@@ -8,7 +8,6 @@
     <Nullable>enable</Nullable>
     <RootNamespace>BepozToolkit.App</RootNamespace>
     <ApplicationManifest>App.manifest</ApplicationManifest>
-    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
   </PropertyGroup>
 
   <ItemGroup>
