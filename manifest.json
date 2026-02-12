@@ -33,78 +33,9 @@
       "id": "scheduling",
       "name": "Scheduling",
       "description": "Tools for managing schedules and time-based operations"
-    },
-    {
-      "id": "smartposmobile",
-      "name": "SmartPOS Mobile",
-      "description": "SmartPOS Mobile configuration and management tools"
-    },
-    {
-      "id": "kiosk",
-      "name": "Kiosk",
-      "description": "Kiosk setup and maintenance tools"
-    },
-    {
-      "id": "tsplus",
-      "name": "TSPlus",
-      "description": "Terminal Services Plus configuration tools"
-    },
-    {
-      "id": "database",
-      "name": "Database Tools",
-      "description": "Direct database query and maintenance utilities"
-    },
-    {
-      "id": "workstation",
-      "name": "Workstation Setup",
-      "description": "Workstation and device configuration tools"
     }
   ],
   "tools": [
-    {
-      "id": "weekly-schedule",
-      "name": "Weekly Schedule Tool",
-      "category": "scheduling",
-      "file": "tools/Weekly-Schedule-Tool.ps1",
-      "description": "Manage weekly scheduling for staff and resources",
-      "version": "1.0.0",
-      "requiresAdmin": false,
-      "requiresDatabase": true,
-      "author": "Bepoz Support Team"
-    },
-    {
-      "id": "user-tool",
-      "name": "User Management Tool",
-      "category": "smartposmobile",
-      "file": "tools/User-Tool.ps1",
-      "description": "Configure SmartPOS Mobile users and permissions",
-      "version": "1.0.0",
-      "requiresAdmin": false,
-      "requiresDatabase": true,
-      "author": "Bepoz Support Team"
-    },
-    {
-      "id": "eftpos-setup",
-      "name": "EFTPOS Setup",
-      "category": "workstation",
-      "file": "tools/EFTPOS-Setup.ps1",
-      "description": "Configure EFTPOS devices for a workstation",
-      "version": "1.0.0",
-      "requiresAdmin": false,
-      "requiresDatabase": true,
-      "author": "Bepoz Support Team"
-    },
-    {
-      "id": "venue-query",
-      "name": "Venue Query Tool",
-      "category": "database",
-      "file": "tools/Venue-Query.ps1",
-      "description": "Quick database queries for venue information",
-      "version": "1.0.0",
-      "requiresAdmin": false,
-      "requiresDatabase": true,
-      "author": "Bepoz Support Team"
-    },
     {
       "id": "weekschedule-bulk-manager",
       "name": "WeekSchedule Bulk Manager",
