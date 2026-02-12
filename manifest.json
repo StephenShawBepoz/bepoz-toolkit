@@ -88,7 +88,7 @@
       "category": "tsplus",
       "file": "tools/TSPlusManager.ps1",
       "description": "Comprehensive TSPlus management with 9 tabs: uninstall, license, services, backup/restore, updates, ports, connections, users, health check",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "requiresAdmin": true,
       "requiresDatabase": false,
       "author": "Bepoz Administration Team",

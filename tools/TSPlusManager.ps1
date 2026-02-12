@@ -1432,27 +1432,39 @@ function Initialize-ConnectionMonitorTab {
         Write-Log "Refreshing connection list" -Level INFO
 
         try {
-            # Use qwinsta to get session info
-            $sessions = quser 2>$null
+            # Use query session for more reliable output
+            $sessions = query session 2>$null
 
-            if ($sessions) {
+            if ($sessions -and $sessions.Count -gt 1) {
+                # Skip header line and parse each session
                 $sessions | Select-Object -Skip 1 | ForEach-Object {
-                    $line = $_ -replace '\s+', ' '
-                    $parts = $line.Trim().Split(' ')
+                    $line = $_.Trim()
 
-                    if ($parts.Count -ge 4) {
-                        $username = $parts[0]
-                        $sessionName = $parts[1]
-                        $sessionId = $parts[2]
-                        $state = $parts[3]
-                        $idleTime = if ($parts.Count -gt 4) { $parts[4] } else { "." }
-                        $logonTime = if ($parts.Count -gt 5) { $parts[5..($parts.Count-1)] -join ' ' } else { "" }
+                    # Parse using regex for more reliable extraction
+                    # Format: >sessionname username ID State Type Device
+                    if ($line -match '^\s*>?(\S+)\s+(\S+)?\s+(\d+)\s+(\w+)') {
+                        $sessionName = $matches[1]
+                        $username = if ($matches[2]) { $matches[2] } else { "N/A" }
+                        $sessionId = $matches[3]
+                        $state = $matches[4]
 
-                        # Get client IP
+                        # Extract idle time if present
+                        $idleTime = "0"
+                        if ($line -match '\s+(\d+\+\d+:\d+|\d+:\d+|\d+|\.)') {
+                            $idleTime = $matches[1]
+                        }
+
+                        # Extract logon time if present
+                        $logonTime = ""
+                        if ($line -match '(\d{1,2}/\d{1,2}/\d{4}\s+\d{1,2}:\d{2}\s+[AP]M)') {
+                            $logonTime = $matches[1]
+                        }
+
+                        # Get client IP using qwinsta
                         $clientIP = "N/A"
                         try {
-                            $queryOutput = query session $sessionId 2>$null
-                            if ($queryOutput -match "(\d+\.\d+\.\d+\.\d+)") {
+                            $qwinstaOutput = qwinsta $sessionId 2>$null
+                            if ($qwinstaOutput -match '(\d+\.\d+\.\d+\.\d+)') {
                                 $clientIP = $matches[1]
                             }
                         } catch {}
@@ -1466,6 +1478,8 @@ function Initialize-ConnectionMonitorTab {
 
                         if ($state -eq "Active") {
                             $item.ForeColor = [System.Drawing.Color]::Green
+                        } elseif ($state -eq "Disc") {
+                            $item.ForeColor = [System.Drawing.Color]::Orange
                         } else {
                             $item.ForeColor = [System.Drawing.Color]::Gray
                         }
@@ -1476,10 +1490,19 @@ function Initialize-ConnectionMonitorTab {
             } else {
                 $item = New-Object System.Windows.Forms.ListViewItem("-")
                 $item.SubItems.Add("No active sessions")
+                $item.SubItems.Add("-")
+                $item.SubItems.Add("-")
+                $item.SubItems.Add("-")
+                $item.SubItems.Add("-")
                 [void]$connectionListView.Items.Add($item)
             }
         } catch {
             Write-Log "Error refreshing connections: $($_.Exception.Message)" -Level ERROR
+            $item = New-Object System.Windows.Forms.ListViewItem("ERROR")
+            $item.SubItems.Add("Failed to query sessions")
+            $item.SubItems.Add($_.Exception.Message.Substring(0, [Math]::Min(50, $_.Exception.Message.Length)))
+            $item.ForeColor = [System.Drawing.Color]::Red
+            [void]$connectionListView.Items.Add($item)
         }
     })
     $panel.Controls.Add($refreshConnectionsButton)
@@ -1505,30 +1528,53 @@ function Initialize-ConnectionMonitorTab {
 
         if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
             try {
-                logoff $sessionId
-                Write-Log "Disconnected session: $sessionId ($username)" -Level SUCCESS
-                [System.Windows.Forms.MessageBox]::Show("Session disconnected.", "Success", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+                # Use logoff command with error handling
+                $logoffResult = logoff $sessionId 2>&1
+
+                # Check if command succeeded
+                if ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq $null) {
+                    Write-Log "Disconnected session: $sessionId ($username)" -Level SUCCESS
+                    [System.Windows.Forms.MessageBox]::Show("Session disconnected successfully.", "Success", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+                } else {
+                    throw "Logoff command failed with exit code: $LASTEXITCODE"
+                }
+
+                # Refresh the list
+                Start-Sleep -Milliseconds 500  # Brief delay for session to terminate
                 & $refreshConnectionsButton.PerformClick()
             } catch {
-                [System.Windows.Forms.MessageBox]::Show("Failed to disconnect: $($_.Exception.Message)", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+                Write-Log "Failed to disconnect session: $($_.Exception.Message)" -Level ERROR
+                [System.Windows.Forms.MessageBox]::Show("Failed to disconnect session:`n`n$($_.Exception.Message)`n`nYou may need administrator privileges.", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
             }
         }
     })
     $panel.Controls.Add($disconnectButton)
 
     # Auto-refresh timer
-    $script:autoRefreshTimer = New-Object System.Windows.Forms.Timer
-    $script:autoRefreshTimer.Interval = 5000
-    $script:autoRefreshTimer.Add_Tick({
+    $autoRefreshTimer = New-Object System.Windows.Forms.Timer
+    $autoRefreshTimer.Interval = 5000
+    $autoRefreshTimer.Add_Tick({
         if ($autoRefreshCheck.Checked) {
-            & $refreshConnectionsButton.PerformClick()
+            try {
+                & $refreshConnectionsButton.PerformClick()
+            } catch {
+                Write-Log "Auto-refresh error: $($_.Exception.Message)" -Level ERROR
+            }
         }
     })
-    $script:autoRefreshTimer.Start()
+    $autoRefreshTimer.Start()
 
     $autoRefreshCheck.Add_CheckedChanged({
         if ($autoRefreshCheck.Checked) {
             & $refreshConnectionsButton.PerformClick()
+        }
+    })
+
+    # Cleanup timer when tab is disposed
+    $TabPage.Add_Disposed({
+        if ($autoRefreshTimer) {
+            $autoRefreshTimer.Stop()
+            $autoRefreshTimer.Dispose()
         }
     })
 
@@ -1627,42 +1673,72 @@ function Initialize-UserGroupTab {
         Write-Log "Loading users from group: $groupName" -Level INFO
 
         try {
+            # Try to access the local group using ADSI
             $group = [ADSI]"WinNT://./$groupName,group"
+
+            # Verify the group exists by trying to get members
             $members = @($group.Invoke("Members"))
 
-            foreach ($member in $members) {
-                $username = $member.GetType().InvokeMember("Name", 'GetProperty', $null, $member, $null)
-                $adspath = $member.GetType().InvokeMember("ADsPath", 'GetProperty', $null, $member, $null)
+            if ($members.Count -eq 0) {
+                $item = New-Object System.Windows.Forms.ListViewItem("-")
+                $item.SubItems.Add("-")
+                $item.SubItems.Add("No members in this group")
+                $item.SubItems.Add("-")
+                [void]$userListView.Items.Add($item)
+                Write-Log "Group $groupName has no members" -Level INFO
+            } else {
+                foreach ($member in $members) {
+                    try {
+                        $username = $member.GetType().InvokeMember("Name", 'GetProperty', $null, $member, $null)
+                        $adspath = $member.GetType().InvokeMember("ADsPath", 'GetProperty', $null, $member, $null)
 
-                $domain = ""
-                $fullName = ""
-                $userType = "User"
+                        $domain = ""
+                        $fullName = ""
+                        $userType = "User"
 
-                if ($adspath -match "WinNT://([^/]+)/") {
-                    $domain = $matches[1]
+                        if ($adspath -match "WinNT://([^/]+)/") {
+                            $domain = $matches[1]
+                        }
+
+                        try {
+                            $userObj = [ADSI]$adspath
+                            if ($userObj.FullName) {
+                                $fullName = $userObj.FullName.Value
+                            }
+                            if ($userObj.Class) {
+                                $class = $userObj.Class.Value
+                                if ($class -eq "Group") {
+                                    $userType = "Group"
+                                }
+                            }
+                        } catch {
+                            # Could not get additional details - not critical
+                        }
+
+                        $item = New-Object System.Windows.Forms.ListViewItem($username)
+                        $item.SubItems.Add($domain)
+                        $item.SubItems.Add($fullName)
+                        $item.SubItems.Add($userType)
+
+                        [void]$userListView.Items.Add($item)
+                    } catch {
+                        Write-Log "Error processing member: $($_.Exception.Message)" -Level WARNING
+                    }
                 }
 
-                try {
-                    $userObj = [ADSI]$adspath
-                    $fullName = $userObj.FullName.Value
-                    $class = $userObj.Class.Value
-                    if ($class -eq "Group") {
-                        $userType = "Group"
-                    }
-                } catch {}
-
-                $item = New-Object System.Windows.Forms.ListViewItem($username)
-                $item.SubItems.Add($domain)
-                $item.SubItems.Add($fullName)
-                $item.SubItems.Add($userType)
-
-                [void]$userListView.Items.Add($item)
+                Write-Log "Loaded $($members.Count) members from $groupName" -Level SUCCESS
             }
-
-            Write-Log "Loaded $($members.Count) members from $groupName" -Level SUCCESS
         } catch {
             Write-Log "Error loading group members: $($_.Exception.Message)" -Level ERROR
-            [System.Windows.Forms.MessageBox]::Show("Error loading group members: $($_.Exception.Message)", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+
+            # Show more helpful error message
+            $errorMsg = "Failed to load group '$groupName'.`n`nPossible causes:`n"
+            $errorMsg += "- Group does not exist on this computer`n"
+            $errorMsg += "- Insufficient permissions`n"
+            $errorMsg += "- Computer is domain-joined (use domain groups instead)`n`n"
+            $errorMsg += "Error: $($_.Exception.Message)"
+
+            [System.Windows.Forms.MessageBox]::Show($errorMsg, "Error Loading Group", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
         }
     })
     $panel.Controls.Add($refreshUsersButton)
@@ -1691,14 +1767,30 @@ function Initialize-UserGroupTab {
 
         try {
             $group = [ADSI]"WinNT://./$groupName,group"
+
+            # Try to add the user
             $group.Add("WinNT://./$username,user")
+
             Write-Log "Added user $username to group $groupName" -Level SUCCESS
-            [System.Windows.Forms.MessageBox]::Show("User added successfully.", "Success", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+            [System.Windows.Forms.MessageBox]::Show("User '$username' added to group '$groupName' successfully.", "Success", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
             $usernameTextBox.Clear()
             & $refreshUsersButton.PerformClick()
         } catch {
             Write-Log "Error adding user: $($_.Exception.Message)" -Level ERROR
-            [System.Windows.Forms.MessageBox]::Show("Error adding user: $($_.Exception.Message)", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+
+            # Show more helpful error message
+            $errorMsg = "Failed to add user '$username' to group '$groupName'.`n`n"
+
+            if ($_.Exception.Message -like "*already a member*") {
+                $errorMsg += "User is already a member of this group."
+            } elseif ($_.Exception.Message -like "*not found*") {
+                $errorMsg += "User '$username' does not exist on this computer.`n`n"
+                $errorMsg += "Tip: Use just the username without domain (e.g., 'johndoe' not 'DOMAIN\johndoe')"
+            } else {
+                $errorMsg += "Error: $($_.Exception.Message)"
+            }
+
+            [System.Windows.Forms.MessageBox]::Show($errorMsg, "Error Adding User", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
         }
     })
     $panel.Controls.Add($addUserButton)
