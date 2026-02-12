@@ -1,0 +1,367 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ======================================================================
+         Bepoz Toolkit - Global Styles
+         Shared styles, templates, and visual definitions.
+         ====================================================================== -->
+
+    <!-- ===== Focus Visual ===== -->
+    <Style x:Key="BepozFocusVisual">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border BorderBrush="{DynamicResource AccentPrimary}"
+                            BorderThickness="2"
+                            CornerRadius="4"
+                            Margin="-2"
+                            SnapsToDevicePixels="True" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== Primary Button ===== -->
+    <Style x:Key="BepozPrimaryButton" TargetType="Button">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource BepozFocusVisual}" />
+        <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="20,10" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="6"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background"
+                                    Value="{DynamicResource AccentHover}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="border" Property="Background"
+                                    Value="{DynamicResource AccentPressed}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="border" Property="Opacity" Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== Secondary / Outline Button ===== -->
+    <Style x:Key="BepozSecondaryButton" TargetType="Button">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource BepozFocusVisual}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+        <Setter Property="BorderThickness" Value="1.5" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="20,10" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background"
+                                    Value="{DynamicResource TabActiveBackground}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="border" Property="Background"
+                                    Value="{DynamicResource AccentPrimary}" />
+                            <Setter Property="Foreground"
+                                    Value="{DynamicResource TextOnAccent}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="border" Property="Opacity" Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== Ghost / Icon Button (title bar, toolbar) ===== -->
+    <Style x:Key="BepozGhostButton" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="8" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="4"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background"
+                                    Value="{DynamicResource BackgroundTertiary}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="border" Property="Background"
+                                    Value="{DynamicResource DividerColor}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== Card Container ===== -->
+    <Style x:Key="BepozCard" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource CardBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="20" />
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect ShadowDepth="1"
+                                  BlurRadius="6"
+                                  Opacity="0.08"
+                                  Color="{DynamicResource ShadowColor}" />
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== Tool Card (clickable) ===== -->
+    <Style x:Key="BepozToolCard" TargetType="Border" BasedOn="{StaticResource BepozCard}">
+        <Setter Property="Padding" Value="16" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                <Setter Property="Effect">
+                    <Setter.Value>
+                        <DropShadowEffect ShadowDepth="2"
+                                          BlurRadius="12"
+                                          Opacity="0.12"
+                                          Color="{DynamicResource ShadowColor}" />
+                    </Setter.Value>
+                </Setter>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ===== Status Pill Base ===== -->
+    <Style x:Key="StatusPillBase" TargetType="Border">
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="10,4" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="StatusPillText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- Status Pill - Success -->
+    <Style x:Key="StatusPillSuccess" TargetType="Border" BasedOn="{StaticResource StatusPillBase}">
+        <Setter Property="Background" Value="{DynamicResource SuccessBackground}" />
+    </Style>
+
+    <!-- Status Pill - Error -->
+    <Style x:Key="StatusPillError" TargetType="Border" BasedOn="{StaticResource StatusPillBase}">
+        <Setter Property="Background" Value="{DynamicResource ErrorBackground}" />
+    </Style>
+
+    <!-- Status Pill - Warning -->
+    <Style x:Key="StatusPillWarning" TargetType="Border" BasedOn="{StaticResource StatusPillBase}">
+        <Setter Property="Background" Value="{DynamicResource WarningBackground}" />
+    </Style>
+
+    <!-- Status Pill - Info -->
+    <Style x:Key="StatusPillInfo" TargetType="Border" BasedOn="{StaticResource StatusPillBase}">
+        <Setter Property="Background" Value="{DynamicResource InfoBackground}" />
+    </Style>
+
+    <!-- ===== Section Header ===== -->
+    <Style x:Key="SectionHeader" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="Margin" Value="0,0,0,12" />
+    </Style>
+
+    <!-- ===== Body Text ===== -->
+    <Style x:Key="BodyText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!-- ===== Caption Text ===== -->
+    <Style x:Key="CaptionText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!-- ===== Navigation Tab Button ===== -->
+    <Style x:Key="NavTabButton" TargetType="RadioButton">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource BepozFocusVisual}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource TabInactiveForeground}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Padding" Value="16,12" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="GroupName" Value="NavTabs" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Grid>
+                        <Border x:Name="bg"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="6,6,0,0"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <ContentPresenter x:Name="content"
+                                                  VerticalAlignment="Center"
+                                                  RecognizesAccessKey="True" />
+                            </StackPanel>
+                        </Border>
+                        <!-- Active indicator bar at bottom -->
+                        <Border x:Name="indicator"
+                                Height="3"
+                                VerticalAlignment="Bottom"
+                                CornerRadius="1.5,1.5,0,0"
+                                Background="{DynamicResource TabActiveIndicator}"
+                                Visibility="Collapsed" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bg" Property="Background"
+                                    Value="{DynamicResource BackgroundTertiary}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="bg" Property="Background"
+                                    Value="{DynamicResource TabActiveBackground}" />
+                            <Setter Property="Foreground"
+                                    Value="{DynamicResource TabActiveForeground}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                            <Setter TargetName="indicator" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== Title Bar Chrome Button ===== -->
+    <Style x:Key="TitleBarButton" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource TitleBarForeground}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Width" Value="46" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background"
+                                    Value="{DynamicResource TitleBarButtonHover}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== Title Bar Close Button (red hover) ===== -->
+    <Style x:Key="TitleBarCloseButton" TargetType="Button" BasedOn="{StaticResource TitleBarButton}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background"
+                                    Value="{DynamicResource TitleBarCloseHover}" />
+                            <Setter Property="Foreground" Value="White" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== Toast Notification Template ===== -->
+    <Style x:Key="ToastBorder" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource CardBackground}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="16,12" />
+        <Setter Property="MinWidth" Value="300" />
+        <Setter Property="MaxWidth" Value="400" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect ShadowDepth="3"
+                                  BlurRadius="12"
+                                  Opacity="0.18"
+                                  Color="{DynamicResource ShadowColor}" />
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== Offline Banner ===== -->
+    <Style x:Key="OfflineBanner" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource OfflineBannerBackground}" />
+        <Setter Property="Padding" Value="12,8" />
+    </Style>
+
+    <Style x:Key="OfflineBannerText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource OfflineBannerForeground}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+
+</ResourceDictionary>

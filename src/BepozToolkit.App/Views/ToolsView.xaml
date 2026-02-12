@@ -1,0 +1,235 @@
+<UserControl x:Class="BepozToolkit.App.Views.ToolsView"
+             x:Name="ToolsRoot"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:BepozToolkit.App.Converters"
+             xmlns:controls="clr-namespace:BepozToolkit.App.Controls"
+             xmlns:vm="clr-namespace:BepozToolkit.App.ViewModels"
+             d:DataContext="{d:DesignInstance vm:ToolsViewModel}"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             Background="{DynamicResource BackgroundPrimary}">
+
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+        <converters:BoolToStarConverter x:Key="BoolToStar" />
+        <converters:StatusToBrushConverter x:Key="StatusToBrush" />
+    </UserControl.Resources>
+
+    <DockPanel Margin="24">
+        <!-- Loading Bar -->
+        <ProgressBar DockPanel.Dock="Top" IsIndeterminate="True" Height="2" Margin="0,0,0,8"
+                     Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" />
+
+        <!-- Search Bar -->
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="{DynamicResource CardBackground}"
+                    BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
+                    CornerRadius="8" Padding="12,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="&#x1F50D;" FontSize="14"
+                               Foreground="{DynamicResource TextSecondary}"
+                               VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <TextBox Grid.Column="1" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             BorderThickness="0" Background="Transparent" FontSize="14"
+                             Foreground="{DynamicResource TextPrimary}"
+                             VerticalContentAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <Button Grid.Column="1" Content="Refresh" Margin="12,0,0,0" Padding="16,8"
+                    Command="{Binding RefreshCommand}"
+                    Background="{DynamicResource AccentPrimary}"
+                    Foreground="{DynamicResource TextOnAccent}"
+                    BorderThickness="0" Cursor="Hand">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </Grid>
+
+        <!-- Category Filter Pills -->
+        <ListBox DockPanel.Dock="Top" ItemsSource="{Binding Categories}"
+                 SelectedItem="{Binding SelectedCategory}"
+                 Background="Transparent" BorderThickness="0" Margin="0,0,0,16"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                                <Border x:Name="PillBorder" CornerRadius="14" Padding="14,6"
+                                        Margin="0,0,6,6" Cursor="Hand"
+                                        Background="{DynamicResource BackgroundTertiary}"
+                                        BorderBrush="{DynamicResource CardBorder}"
+                                        BorderThickness="1">
+                                    <TextBlock x:Name="PillText" Text="{Binding}"
+                                               FontSize="12" Foreground="{DynamicResource TextSecondary}" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="PillBorder" Property="Background"
+                                                Value="{DynamicResource AccentPrimary}" />
+                                        <Setter TargetName="PillBorder" Property="BorderBrush"
+                                                Value="{DynamicResource AccentPrimary}" />
+                                        <Setter TargetName="PillText" Property="Foreground"
+                                                Value="{DynamicResource TextOnAccent}" />
+                                    </Trigger>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="PillBorder" Property="BorderBrush"
+                                                Value="{DynamicResource AccentHover}" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </ListBox.ItemContainerStyle>
+        </ListBox>
+
+        <!-- Tool Cards Grid -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding Tools}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Width="280" Margin="0,0,16,16"
+                                Background="{DynamicResource CardBackground}"
+                                BorderBrush="{DynamicResource CardBorder}"
+                                BorderThickness="1" CornerRadius="8" Padding="16">
+                            <Border.Effect>
+                                <DropShadowEffect ShadowDepth="1" BlurRadius="6" Opacity="0.08" />
+                            </Border.Effect>
+
+                            <!-- Context Menu -->
+                            <Border.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Run Tool"
+                                              Command="{Binding DataContext.RunToolCommand,
+                                                  Source={x:Reference Name=ToolsRoot}}"
+                                              CommandParameter="{Binding}" />
+                                    <MenuItem Header="Toggle Favorite"
+                                              Command="{Binding DataContext.ToggleFavoriteCommand,
+                                                  Source={x:Reference Name=ToolsRoot}}"
+                                              CommandParameter="{Binding}" />
+                                    <Separator />
+                                    <MenuItem Header="View Documentation" IsEnabled="False" />
+                                </ContextMenu>
+                            </Border.ContextMenu>
+
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!-- Name + Status + Favorite -->
+                                <DockPanel Grid.Row="0" Margin="0,0,0,4">
+                                    <!-- Favorite Star -->
+                                    <Button DockPanel.Dock="Right" Padding="4"
+                                            Background="Transparent" BorderThickness="0"
+                                            Cursor="Hand" FontSize="16"
+                                            Content="{Binding IsFavorite, Converter={StaticResource BoolToStar}}"
+                                            Command="{Binding DataContext.ToggleFavoriteCommand,
+                                                RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}">
+                                        <Button.Foreground>
+                                            <SolidColorBrush Color="#FFC107" />
+                                        </Button.Foreground>
+                                    </Button>
+
+                                    <!-- Status Dot + Name -->
+                                    <StackPanel Orientation="Horizontal">
+                                        <Ellipse Width="8" Height="8" Margin="0,0,8,0"
+                                                 VerticalAlignment="Center"
+                                                 Fill="{Binding Status, Converter={StaticResource StatusToBrush}}" />
+                                        <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextPrimary}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DockPanel>
+
+                                <!-- Version + Category -->
+                                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondary}">
+                                        <Run Text="v" /><Run Text="{Binding Version, Mode=OneWay}" />
+                                    </TextBlock>
+                                    <TextBlock Text=" | " FontSize="11"
+                                               Foreground="{DynamicResource TextDisabled}" />
+                                    <TextBlock Text="{Binding Category}" FontSize="11"
+                                               Foreground="{DynamicResource TextSecondary}" />
+                                </StackPanel>
+
+                                <!-- Description (2 lines) -->
+                                <TextBlock Grid.Row="2" Text="{Binding Description}"
+                                           FontSize="12" Foreground="{DynamicResource TextSecondary}"
+                                           TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                                           MaxHeight="36" LineStackingStrategy="BlockLineHeight"
+                                           LineHeight="18" Margin="0,0,0,12" />
+
+                                <!-- Run Button -->
+                                <Button Grid.Row="3" Content="Run" Padding="0,8"
+                                        HorizontalContentAlignment="Center"
+                                        Command="{Binding DataContext.RunToolCommand,
+                                            RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding}"
+                                        Background="{DynamicResource AccentPrimary}"
+                                        Foreground="{DynamicResource TextOnAccent}"
+                                        BorderThickness="0" Cursor="Hand">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="RunBorder"
+                                                    Background="{TemplateBinding Background}"
+                                                    CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                  VerticalAlignment="Center" />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="RunBorder" Property="Background"
+                                                            Value="{DynamicResource AccentHover}" />
+                                                </Trigger>
+                                                <Trigger Property="IsPressed" Value="True">
+                                                    <Setter TargetName="RunBorder" Property="Background"
+                                                            Value="{DynamicResource AccentPressed}" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

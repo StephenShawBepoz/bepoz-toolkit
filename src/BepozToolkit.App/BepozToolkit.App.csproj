@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>BepozToolkit.App</RootNamespace>
+    <ApplicationManifest>App.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MaterialDesignThemes" Version="5.*" />
+    <PackageReference Include="MaterialDesignColors" Version="3.*" />
+    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="1.*" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BepozToolkit.Core\BepozToolkit.Core.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,38 @@
+<Application x:Class="BepozToolkit.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:helpers="clr-namespace:BepozToolkit.App.Helpers"
+             xmlns:converters="clr-namespace:BepozToolkit.App.Converters">
+
+    <!-- StartupUri is NOT set; we launch MainWindow from code-behind via DI. -->
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+
+                <!-- MaterialDesign Bundled Theme: primary Blue, secondary Amber -->
+                <materialDesign:BundledTheme BaseTheme="Light"
+                                             PrimaryColor="Blue"
+                                             SecondaryColor="Amber" />
+
+                <!-- MaterialDesign defaults -->
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
+
+                <!-- Bepoz custom theme (light by default; swapped at runtime) -->
+                <ResourceDictionary Source="Themes/BepozLightTheme.xaml" />
+
+                <!-- Global styles -->
+                <ResourceDictionary Source="Resources/Styles.xaml" />
+
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Value Converters (globally available) -->
+            <helpers:BoolToThemeIconConverter x:Key="BoolToThemeIconConverter" />
+            <helpers:ToastTypeToColorConverter x:Key="ToastTypeToColorConverter" />
+            <converters:BoolToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+        </ResourceDictionary>
+    </Application.Resources>
+
+</Application>
