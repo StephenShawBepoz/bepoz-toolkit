@@ -945,6 +945,111 @@ function Show-ToolkitGUI {
     })
     $logPanel.Controls.Add($viewLogsButton)
 
+    $clearLogsButton = New-Object System.Windows.Forms.Button
+    $clearLogsButton.Location = New-Object System.Drawing.Point(610, 0)
+    $clearLogsButton.Size = New-Object System.Drawing.Size(120, 30)
+    $clearLogsButton.Text = "Clear Logs"
+    $clearLogsButton.BackColor = [System.Drawing.Color]::FromArgb(128, 128, 128)  # Bepoz Gray (#808080)
+    $clearLogsButton.ForeColor = [System.Drawing.Color]::White
+    $clearLogsButton.FlatStyle = "Flat"
+    $clearLogsButton.FlatAppearance.BorderSize = 0
+    $clearLogsButton.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(138, 168, 221)  # Bepoz Light Blue
+    $clearLogsButton.Cursor = [System.Windows.Forms.Cursors]::Hand
+    $clearLogsButton.Add_Click({
+        $toolLogDir = Join-Path $env:TEMP "BepozToolkit\Logs"
+        $centralLogDir = "C:\Bepoz\Toolkit\Logs"
+
+        # Count total log files
+        $logCount = 0
+        if (Test-Path $toolLogDir) {
+            $logCount += (Get-ChildItem -Path $toolLogDir -Filter "*.log" -ErrorAction SilentlyContinue).Count
+        }
+        if (Test-Path $centralLogDir) {
+            $logCount += (Get-ChildItem -Path $centralLogDir -Filter "*.log" -ErrorAction SilentlyContinue).Count
+        }
+
+        if ($logCount -eq 0) {
+            [System.Windows.Forms.MessageBox]::Show(
+                "No log files found to clear.",
+                "Clear Logs",
+                [System.Windows.Forms.MessageBoxButtons]::OK,
+                [System.Windows.Forms.MessageBoxIcon]::Information
+            ) | Out-Null
+            return
+        }
+
+        # Confirm deletion
+        $result = [System.Windows.Forms.MessageBox]::Show(
+            "This will delete $logCount log file(s) from:`n`n" +
+            "• $toolLogDir`n" +
+            "• $centralLogDir`n`n" +
+            "Are you sure you want to continue?",
+            "Confirm Clear Logs",
+            [System.Windows.Forms.MessageBoxButtons]::YesNo,
+            [System.Windows.Forms.MessageBoxIcon]::Warning
+        )
+
+        if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+            $deletedCount = 0
+            $errors = @()
+
+            # Clear tool logs
+            if (Test-Path $toolLogDir) {
+                try {
+                    $toolLogs = Get-ChildItem -Path $toolLogDir -Filter "*.log" -ErrorAction SilentlyContinue
+                    foreach ($log in $toolLogs) {
+                        try {
+                            Remove-Item -Path $log.FullName -Force -ErrorAction Stop
+                            $deletedCount++
+                        } catch {
+                            $errors += "Failed to delete $($log.Name): $_"
+                        }
+                    }
+                } catch {
+                    $errors += "Error accessing tool logs: $_"
+                }
+            }
+
+            # Clear central logs
+            if (Test-Path $centralLogDir) {
+                try {
+                    $centralLogs = Get-ChildItem -Path $centralLogDir -Filter "*.log" -ErrorAction SilentlyContinue
+                    foreach ($log in $centralLogs) {
+                        try {
+                            Remove-Item -Path $log.FullName -Force -ErrorAction Stop
+                            $deletedCount++
+                        } catch {
+                            $errors += "Failed to delete $($log.Name): $_"
+                        }
+                    }
+                } catch {
+                    $errors += "Error accessing central logs: $_"
+                }
+            }
+
+            # Show result
+            if ($errors.Count -eq 0) {
+                Write-Log "Cleared $deletedCount log file(s)" -Level SUCCESS
+                [System.Windows.Forms.MessageBox]::Show(
+                    "Successfully cleared $deletedCount log file(s).",
+                    "Clear Logs",
+                    [System.Windows.Forms.MessageBoxButtons]::OK,
+                    [System.Windows.Forms.MessageBoxIcon]::Information
+                ) | Out-Null
+            } else {
+                $errorMsg = "Deleted $deletedCount of $logCount log file(s).`n`nErrors:`n" + ($errors -join "`n")
+                Write-Log "Clear logs completed with errors: $($errors.Count) error(s)" -Level WARNING
+                [System.Windows.Forms.MessageBox]::Show(
+                    $errorMsg,
+                    "Clear Logs - Partial Success",
+                    [System.Windows.Forms.MessageBoxButtons]::OK,
+                    [System.Windows.Forms.MessageBoxIcon]::Warning
+                ) | Out-Null
+            }
+        }
+    })
+    $logPanel.Controls.Add($clearLogsButton)
+
     $closeButton = New-Object System.Windows.Forms.Button
     $closeButton.Location = New-Object System.Drawing.Point(740, 0)
     $closeButton.Size = New-Object System.Drawing.Size(120, 30)
