@@ -10,11 +10,13 @@
     Version 2.0 - Now uses centralized BepozDbCore module for database operations.
 .NOTES
     Author: Bepoz Administration Team
-    Version: 2.0.1
+    Version: 2.0.3
     PowerShell Version: 5.1+
     Dependencies: BepozDbCore.ps1 (loaded from temp directory by toolkit)
 
     Changelog:
+    - 2.0.3: Added function verification and auto-reload if BepozDbCore becomes unavailable
+    - 2.0.2: Improved module loading diagnostics and error messages
     - 2.0.1: Fixed PowerShell encoding issues (replaced Unicode characters with ASCII)
     - 2.0.0: Migrated to use centralized BepozDbCore module
     - 1.1.0: Added KioskID support for DataVer >= 4729
@@ -252,6 +254,56 @@ Write-Host ""
 #endregion
 
 #region Database Initialization
+
+# Verify BepozDbCore functions are still available
+Write-Host "Verifying database functions..." -ForegroundColor Cyan
+$dbFunctionCheck = Get-Command -Name Get-BepozDbInfo -ErrorAction SilentlyContinue
+if (-not $dbFunctionCheck) {
+    Write-Host "[WARNING] Get-BepozDbInfo function not available!" -ForegroundColor Yellow
+    Write-Host "[INFO] Attempting to reload BepozDbCore module..." -ForegroundColor Cyan
+
+    # Try to reload the module
+    $tempModule = Get-ChildItem -Path $env:TEMP -Filter "BepozDbCore.ps1" -ErrorAction SilentlyContinue |
+                  Sort-Object LastWriteTime -Descending | Select-Object -First 1
+
+    if ($tempModule) {
+        try {
+            . $tempModule.FullName
+            Write-Host "[OK] BepozDbCore reloaded successfully" -ForegroundColor Green
+
+            # Verify again
+            $dbFunctionCheck = Get-Command -Name Get-BepozDbInfo -ErrorAction SilentlyContinue
+            if (-not $dbFunctionCheck) {
+                throw "Function still not available after reload"
+            }
+        } catch {
+            Write-Host ""
+            Write-Host "ERROR: Failed to reload BepozDbCore" -ForegroundColor Red
+            Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host ""
+            Write-Host "SOLUTION: Clear your temp folder and restart the toolkit:" -ForegroundColor Yellow
+            Write-Host "  1. Close this tool" -ForegroundColor Yellow
+            Write-Host "  2. Run: Remove-Item `"`$env:TEMP\Bepoz*`" -Recurse -Force" -ForegroundColor Yellow
+            Write-Host "  3. Restart the Bepoz Toolkit" -ForegroundColor Yellow
+            Write-Host ""
+            Write-Host "This will download fresh copies of all modules." -ForegroundColor Yellow
+            Write-Host ""
+            Write-Host "Press any key to exit..." -ForegroundColor Yellow
+            $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+            exit 1
+        }
+    } else {
+        Write-Host ""
+        Write-Host "ERROR: BepozDbCore module not found in temp" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "SOLUTION: Run this tool through the Bepoz Toolkit, not directly" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Press any key to exit..." -ForegroundColor Yellow
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+        exit 1
+    }
+}
+Write-Host "[OK] Database functions verified" -ForegroundColor Green
 
 # Get database connection info from BepozDbCore
 try {
