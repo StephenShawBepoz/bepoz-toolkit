@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="MaterialDesignThemes" Version="5.*" />
-    <PackageReference Include="MaterialDesignColors" Version="3.*" />
+    <PackageReference Include="MaterialDesignColors" Version="5.*" />
     <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="1.*" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.*" />
   </ItemGroup>
