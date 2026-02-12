@@ -136,24 +136,43 @@ function Get-BepozDbModule {
 
     if ($tempModule) {
         try {
+            Write-Host "[INFO] Attempting to dot-source: $($tempModule.FullName)" -ForegroundColor Cyan
             . $tempModule.FullName
             Write-Host "[OK] Loaded BepozDbCore from: $($tempModule.FullName)" -ForegroundColor Green
-            
+
             # Verify key functions are available
-            $requiredFunctions = @('Invoke-BepozQuery', 'Invoke-BepozNonQuery', 'Get-BepozDbInfo')
-            $missingFunctions = $requiredFunctions | Where-Object { 
-                -not (Get-Command -Name $_ -ErrorAction SilentlyContinue) 
+            $requiredFunctions = @('Invoke-BepozQuery', 'Invoke-BepozNonQuery', 'Get-BepozDbInfo', 'Test-BepozDatabaseConnection')
+            Write-Host "[INFO] Checking for required functions..." -ForegroundColor Cyan
+
+            $missingFunctions = @()
+            foreach ($funcName in $requiredFunctions) {
+                $cmdExists = Get-Command -Name $funcName -ErrorAction SilentlyContinue
+                if (-not $cmdExists) {
+                    Write-Host "[WARNING] Function not found: $funcName" -ForegroundColor Yellow
+                    $missingFunctions += $funcName
+                } else {
+                    Write-Host "[OK] Function available: $funcName" -ForegroundColor Green
+                }
             }
-            
+
             if ($missingFunctions.Count -gt 0) {
                 Write-Host "[ERROR] Module loaded but missing functions: $($missingFunctions -join ', ')" -ForegroundColor Red
+                Write-Host "[ERROR] Available Bepoz commands after loading:" -ForegroundColor Red
+                Get-Command -Name "*Bepoz*" -ErrorAction SilentlyContinue | ForEach-Object {
+                    Write-Host "  - $($_.Name)" -ForegroundColor Gray
+                }
                 return $false
             }
-            
+
+            Write-Host "[OK] All required functions available" -ForegroundColor Green
             return $true
-        } 
+        }
         catch {
             Write-Host "[ERROR] Failed to load BepozDbCore: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "[ERROR] Error type: $($_.Exception.GetType().FullName)" -ForegroundColor Red
+            if ($_.ScriptStackTrace) {
+                Write-Host "[ERROR] Stack trace: $($_.ScriptStackTrace)" -ForegroundColor Red
+            }
             return $false
         }
     }
