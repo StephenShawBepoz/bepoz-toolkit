@@ -16,10 +16,16 @@
 .PARAMETER Branch
     Git branch to use (default: main)
 .NOTES
-    Version: 1.4.0
+    Version: 1.5.0
     Author: Bepoz Support Team
-    Last Updated: 2026-02-12
+    Last Updated: 2026-02-13
     Requires: PowerShell 5.1+, Windows Forms
+
+    Changes in v1.5.0:
+    - Added automatic cleanup of old cached modules on startup
+    - Enhanced cleanup on exit (removes modules and tool files)
+    - Prevents using outdated/corrupted module versions
+    - Added Clear Logs button for log management
 
     Changes in v1.4.0:
     - Added search functionality to filter tools by name/description
@@ -54,7 +60,7 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 #region Configuration
-$Script:Version = "1.4.0"
+$Script:Version = "1.5.0"
 $Script:TempDir = Join-Path $env:TEMP "BepozToolkit_$([guid]::NewGuid().ToString().Substring(0,8))"
 $Script:LogFile = Join-Path $env:TEMP "BepozToolkit.log"
 $Script:BaseUrl = "https://raw.githubusercontent.com/$GitHubOrg/$GitHubRepo/$Branch"
@@ -102,26 +108,102 @@ function Register-TempFile {
     $Script:DownloadedFiles += $FilePath
 }
 
+function Clear-OldModules {
+    <#
+    .SYNOPSIS
+        Clears old cached Bepoz modules from temp directory on startup
+    .DESCRIPTION
+        Forces fresh download of modules to prevent using outdated/corrupted versions
+    #>
+    Write-Log "Cleaning old Bepoz modules from temp..." -Level INFO
+
+    try {
+        # Find and remove old Bepoz module files
+        $oldModules = Get-ChildItem -Path $env:TEMP -Filter "Bepoz*.ps1" -ErrorAction SilentlyContinue
+
+        if ($oldModules) {
+            $count = 0
+            foreach ($module in $oldModules) {
+                try {
+                    # Check if file is older than 1 hour (allow recent downloads to persist briefly)
+                    if ($module.LastWriteTime -lt (Get-Date).AddHours(-1)) {
+                        Remove-Item $module.FullName -Force -ErrorAction Stop
+                        $count++
+                        Write-Log "Removed old module: $($module.Name)" -Level INFO
+                    }
+                } catch {
+                    Write-Log "Could not remove module $($module.Name): $($_.Exception.Message)" -Level WARN
+                }
+            }
+
+            if ($count -gt 0) {
+                Write-Log "Removed $count old module(s) - fresh copies will be downloaded" -Level SUCCESS
+            } else {
+                Write-Log "No old modules to clean (all recent)" -Level INFO
+            }
+        } else {
+            Write-Log "No cached modules found in temp" -Level INFO
+        }
+    } catch {
+        Write-Log "Error during module cleanup: $($_.Exception.Message)" -Level WARN
+    }
+}
+
 function Remove-TempFiles {
+    <#
+    .SYNOPSIS
+        Cleans up temporary files and modules on toolkit exit
+    #>
     Write-Log "Cleaning up temporary files..." -Level INFO
 
+    # Clean downloaded tool files
+    $toolCount = 0
     foreach ($file in $Script:DownloadedFiles) {
         if (Test-Path $file) {
             try {
                 Remove-Item $file -Force -ErrorAction Stop
+                $toolCount++
             } catch {
                 Write-Log "Failed to delete: $file" -Level WARN
             }
         }
     }
 
+    if ($toolCount -gt 0) {
+        Write-Log "Cleaned $toolCount tool file(s)" -Level INFO
+    }
+
+    # Clean temp directory
     if (Test-Path $Script:TempDir) {
         try {
             Remove-Item $Script:TempDir -Recurse -Force -ErrorAction Stop
+            Write-Log "Cleaned temp directory" -Level INFO
         } catch {
             Write-Log "Failed to delete temp directory" -Level WARN
         }
     }
+
+    # Clean module files on exit (optional - forces fresh download next time)
+    try {
+        $modules = Get-ChildItem -Path $env:TEMP -Filter "Bepoz*.ps1" -ErrorAction SilentlyContinue
+        $moduleCount = 0
+        foreach ($module in $modules) {
+            try {
+                Remove-Item $module.FullName -Force -ErrorAction Stop
+                $moduleCount++
+            } catch {
+                # Ignore errors - modules might be in use
+            }
+        }
+
+        if ($moduleCount -gt 0) {
+            Write-Log "Cleaned $moduleCount module file(s)" -Level INFO
+        }
+    } catch {
+        # Silent fail - not critical
+    }
+
+    Write-Log "Cleanup complete" -Level SUCCESS
 }
 #endregion
 
@@ -573,6 +655,9 @@ function Show-ToolkitGUI {
     }
 
     Write-Log "Toolkit GUI started" -Level INFO
+
+    # Clean old cached modules on startup (forces fresh downloads)
+    Clear-OldModules
 
     # Check for updates
     $updateFile = Test-BootstrapUpdate
