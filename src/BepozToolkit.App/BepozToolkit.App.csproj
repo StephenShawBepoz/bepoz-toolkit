@@ -12,11 +12,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ApplicationDefinition Remove="App.xaml" />
-    <Page Include="App.xaml" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="MaterialDesignThemes" Version="5.*" />
     <PackageReference Include="MaterialDesignColors" Version="5.*" />
     <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="1.*" />
