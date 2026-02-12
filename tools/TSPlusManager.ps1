@@ -180,13 +180,23 @@ function Initialize-UninstallerTab {
     # Log textbox
     $logBox = New-Object System.Windows.Forms.TextBox
     $logBox.Location = New-Object System.Drawing.Point(10, $y)
-    $logBox.Size = New-Object System.Drawing.Size(760, 200)
+    $logBox.Size = New-Object System.Drawing.Size(760, 170)
     $logBox.Multiline = $true
     $logBox.ScrollBars = "Vertical"
     $logBox.ReadOnly = $true
     $logBox.Font = New-Object System.Drawing.Font("Consolas", 9)
     $panel.Controls.Add($logBox)
-    $y += 210
+    $y += 180
+
+    # Progress bar
+    $progressBar = New-Object System.Windows.Forms.ProgressBar
+    $progressBar.Location = New-Object System.Drawing.Point(10, $y)
+    $progressBar.Size = New-Object System.Drawing.Size(760, 25)
+    $progressBar.Style = "Marquee"
+    $progressBar.MarqueeAnimationSpeed = 30
+    $progressBar.Visible = $false
+    $panel.Controls.Add($progressBar)
+    $y += 35
 
     # Uninstall button
     $uninstallButton = New-Object System.Windows.Forms.Button
@@ -254,35 +264,76 @@ function Initialize-UninstallerTab {
             $logBox.AppendText("[$(Get-Date -Format 'HH:mm:ss')] Running uninstaller...`r`n")
             Write-Log "Executing TSPlus uninstaller" -Level INFO
 
+            # Show progress bar
+            $progressBar.Visible = $true
+
             try {
-                $process = Start-Process -FilePath $script:TSPlusUninstaller -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -PassThru -Wait
+                # Start process without waiting
+                $process = Start-Process -FilePath $script:TSPlusUninstaller -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -PassThru
 
-                if ($process.ExitCode -eq 0) {
-                    $logBox.AppendText("[$(Get-Date -Format 'HH:mm:ss')] Uninstall completed successfully (Exit Code: 0)`r`n")
-                    Write-Log "TSPlus uninstalled successfully" -Level SUCCESS
+                # Create timer to monitor process
+                $timer = New-Object System.Windows.Forms.Timer
+                $timer.Interval = 500  # Check every 500ms
+                $script:startTime = Get-Date
 
-                    [System.Windows.Forms.MessageBox]::Show(
-                        "TSPlus has been successfully uninstalled.`n`nA system reboot is recommended.",
-                        "Uninstall Complete",
-                        [System.Windows.Forms.MessageBoxButtons]::OK,
-                        [System.Windows.Forms.MessageBoxIcon]::Information
-                    ) | Out-Null
+                $timer.Add_Tick({
+                    $elapsed = [math]::Round(((Get-Date) - $script:startTime).TotalSeconds, 0)
 
-                    # Refresh status
-                    $statusLabel.Text = "TSPlus is not installed on this system."
-                    $statusLabel.ForeColor = [System.Drawing.Color]::Red
-                } else {
-                    $logBox.AppendText("[$(Get-Date -Format 'HH:mm:ss')] Uninstall completed with exit code: $($process.ExitCode)`r`n")
-                    Write-Log "TSPlus uninstall exit code: $($process.ExitCode)" -Level WARNING
+                    if ($process.HasExited) {
+                        # Stop timer and hide progress bar
+                        $timer.Stop()
+                        $timer.Dispose()
+                        UI-Invoke $progressBar { $progressBar.Visible = $false }
 
-                    [System.Windows.Forms.MessageBox]::Show(
-                        "Uninstall completed with exit code: $($process.ExitCode)`n`nCheck the log for details.",
-                        "Uninstall Result",
-                        [System.Windows.Forms.MessageBoxButtons]::OK,
-                        [System.Windows.Forms.MessageBoxIcon]::Warning
-                    ) | Out-Null
-                }
+                        # Check exit code
+                        if ($process.ExitCode -eq 0) {
+                            UI-Invoke $logBox {
+                                $logBox.AppendText("[$(Get-Date -Format 'HH:mm:ss')] Uninstall completed successfully (Exit Code: 0, Duration: ${elapsed}s)`r`n")
+                            }
+                            Write-Log "TSPlus uninstalled successfully in ${elapsed}s" -Level SUCCESS
+
+                            [System.Windows.Forms.MessageBox]::Show(
+                                "TSPlus has been successfully uninstalled.`n`nDuration: ${elapsed} seconds`n`nA system reboot is recommended.",
+                                "Uninstall Complete",
+                                [System.Windows.Forms.MessageBoxButtons]::OK,
+                                [System.Windows.Forms.MessageBoxIcon]::Information
+                            ) | Out-Null
+
+                            # Refresh status
+                            UI-Invoke $statusLabel {
+                                $statusLabel.Text = "TSPlus is not installed on this system."
+                                $statusLabel.ForeColor = [System.Drawing.Color]::Red
+                            }
+                        } else {
+                            UI-Invoke $logBox {
+                                $logBox.AppendText("[$(Get-Date -Format 'HH:mm:ss')] Uninstall completed with exit code: $($process.ExitCode) (Duration: ${elapsed}s)`r`n")
+                            }
+                            Write-Log "TSPlus uninstall exit code: $($process.ExitCode)" -Level WARNING
+
+                            [System.Windows.Forms.MessageBox]::Show(
+                                "Uninstall completed with exit code: $($process.ExitCode)`n`nDuration: ${elapsed} seconds`n`nCheck the log for details.",
+                                "Uninstall Result",
+                                [System.Windows.Forms.MessageBoxButtons]::OK,
+                                [System.Windows.Forms.MessageBoxIcon]::Warning
+                            ) | Out-Null
+                        }
+
+                        # Re-enable button
+                        UI-Invoke $uninstallButton {
+                            $uninstallButton.Enabled = Test-TSPlusInstalled
+                        }
+                    } else {
+                        # Still running - update log
+                        UI-Invoke $logBox {
+                            $logBox.AppendText("[$(Get-Date -Format 'HH:mm:ss')] Uninstalling... (${elapsed}s elapsed)`r`n")
+                        }
+                    }
+                })
+
+                $timer.Start()
+
             } catch {
+                $progressBar.Visible = $false
                 $logBox.AppendText("[$(Get-Date -Format 'HH:mm:ss')] Error: $($_.Exception.Message)`r`n")
                 Write-Log "Uninstall error: $($_.Exception.Message)" -Level ERROR
 
@@ -292,6 +343,8 @@ function Initialize-UninstallerTab {
                     [System.Windows.Forms.MessageBoxButtons]::OK,
                     [System.Windows.Forms.MessageBoxIcon]::Error
                 ) | Out-Null
+
+                $uninstallButton.Enabled = Test-TSPlusInstalled
             }
         } else {
             $logBox.AppendText("[$(Get-Date -Format 'HH:mm:ss')] Uninstaller not found at: $script:TSPlusUninstaller`r`n")
