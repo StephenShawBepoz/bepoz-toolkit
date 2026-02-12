@@ -261,13 +261,13 @@ Category: $($Tool.category)
 "@
 
     if ($Tool.requiresAdmin) {
-        $details += "`n⚠ Requires Administrator"
+        $details += "`n[!] Requires Administrator"
     }
     if ($Tool.requiresDatabase) {
-        $details += "`n🗄 Requires Database Access"
+        $details += "`n[DB] Requires Database Access"
     }
     if ($Tool.documentation) {
-        $details += "`n`n📚 Documentation Available"
+        $details += "`n`n[Docs] Documentation Available"
     }
 
     $Script:ToolDescriptionLabel.Text = $details
@@ -623,7 +623,7 @@ function Show-ToolkitGUI {
     $Script:ViewDocsButton = New-Object System.Windows.Forms.Button
     $Script:ViewDocsButton.Location = New-Object System.Drawing.Point(5, 370)
     $Script:ViewDocsButton.Size = New-Object System.Drawing.Size(290, 40)
-    $Script:ViewDocsButton.Text = "📚 View Documentation"
+    $Script:ViewDocsButton.Text = "View Documentation"
     $Script:ViewDocsButton.Font = New-Object System.Drawing.Font("Segoe UI", 10)
     $Script:ViewDocsButton.BackColor = [System.Drawing.Color]::FromArgb(103, 58, 182)  # Bepoz Purple (#673AB6)
     $Script:ViewDocsButton.ForeColor = [System.Drawing.Color]::White
