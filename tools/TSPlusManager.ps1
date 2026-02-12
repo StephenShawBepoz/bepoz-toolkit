@@ -1230,6 +1230,735 @@ function Initialize-UpdateTab {
 
 #endregion
 
+#region Tab 6: Port Configuration
+
+function Initialize-PortConfigTab {
+    param($TabPage)
+
+    $panel = New-Object System.Windows.Forms.Panel
+    $panel.Dock = "Fill"
+    $panel.Padding = New-Object System.Windows.Forms.Padding(20)
+
+    $y = 10
+
+    # Title
+    $title = New-Object System.Windows.Forms.Label
+    $title.Location = New-Object System.Drawing.Point(10, $y)
+    $title.Size = New-Object System.Drawing.Size(760, 30)
+    $title.Text = "TSPlus Port Configuration"
+    $title.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
+    $panel.Controls.Add($title)
+    $y += 40
+
+    # Port list
+    $portListView = New-Object System.Windows.Forms.ListView
+    $portListView.Location = New-Object System.Drawing.Point(10, $y)
+    $portListView.Size = New-Object System.Drawing.Size(760, 250)
+    $portListView.View = "Details"
+    $portListView.FullRowSelect = $true
+    $portListView.GridLines = $true
+    $portListView.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+
+    [void]$portListView.Columns.Add("Service", 150)
+    [void]$portListView.Columns.Add("Port", 80)
+    [void]$portListView.Columns.Add("Protocol", 80)
+    [void]$portListView.Columns.Add("Status", 100)
+    [void]$portListView.Columns.Add("Firewall Rule", 150)
+    [void]$portListView.Columns.Add("Description", 180)
+
+    $panel.Controls.Add($portListView)
+    $y += 260
+
+    # Buttons
+    $refreshPortsButton = New-Object System.Windows.Forms.Button
+    $refreshPortsButton.Location = New-Object System.Drawing.Point(10, $y)
+    $refreshPortsButton.Size = New-Object System.Drawing.Size(150, 35)
+    $refreshPortsButton.Text = "Refresh Ports"
+    $refreshPortsButton.BackColor = [System.Drawing.Color]::FromArgb(128, 128, 128)
+    $refreshPortsButton.ForeColor = [System.Drawing.Color]::White
+    $refreshPortsButton.FlatStyle = "Flat"
+    $refreshPortsButton.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+    $refreshPortsButton.Add_Click({
+        $portListView.Items.Clear()
+        Write-Log "Refreshing TSPlus port status" -Level INFO
+
+        # Common TSPlus ports
+        $ports = @(
+            @{Service="HTTP"; Port=80; Protocol="TCP"; Desc="Web Portal (HTTP)"},
+            @{Service="HTTPS"; Port=443; Protocol="TCP"; Desc="Web Portal (HTTPS)"},
+            @{Service="RDP"; Port=3389; Protocol="TCP"; Desc="Remote Desktop"},
+            @{Service="HTML5"; Port=8080; Protocol="TCP"; Desc="HTML5 Gateway"},
+            @{Service="AdminTool"; Port=5588; Protocol="TCP"; Desc="AdminTool Port"}
+        )
+
+        foreach ($portInfo in $ports) {
+            # Check if port is listening
+            $listening = $false
+            try {
+                $connections = Get-NetTCPConnection -LocalPort $portInfo.Port -State Listen -ErrorAction SilentlyContinue
+                $listening = $connections.Count -gt 0
+            } catch {}
+
+            # Check firewall rule
+            $firewallStatus = "Not Found"
+            try {
+                $rule = Get-NetFirewallRule -DisplayName "*TSPlus*$($portInfo.Service)*" -ErrorAction SilentlyContinue |
+                        Where-Object { $_.Enabled -eq $true } | Select-Object -First 1
+                if ($rule) {
+                    $firewallStatus = "Enabled"
+                }
+            } catch {}
+
+            $item = New-Object System.Windows.Forms.ListViewItem($portInfo.Service)
+            $item.SubItems.Add($portInfo.Port.ToString())
+            $item.SubItems.Add($portInfo.Protocol)
+            $item.SubItems.Add($(if ($listening) { "Listening" } else { "Not Listening" }))
+            $item.SubItems.Add($firewallStatus)
+            $item.SubItems.Add($portInfo.Desc)
+
+            if ($listening) {
+                $item.ForeColor = [System.Drawing.Color]::Green
+            } else {
+                $item.ForeColor = [System.Drawing.Color]::Gray
+            }
+
+            [void]$portListView.Items.Add($item)
+        }
+    })
+    $panel.Controls.Add($refreshPortsButton)
+
+    $createRulesButton = New-Object System.Windows.Forms.Button
+    $createRulesButton.Location = New-Object System.Drawing.Point(170, $y)
+    $createRulesButton.Size = New-Object System.Drawing.Size(180, 35)
+    $createRulesButton.Text = "Create Firewall Rules"
+    $createRulesButton.BackColor = [System.Drawing.Color]::FromArgb(10, 124, 72)
+    $createRulesButton.ForeColor = [System.Drawing.Color]::White
+    $createRulesButton.FlatStyle = "Flat"
+    $createRulesButton.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+    $createRulesButton.Add_Click({
+        if (-not (Test-IsAdmin)) {
+            [System.Windows.Forms.MessageBox]::Show("Administrator privileges required.", "Admin Required", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+            return
+        }
+
+        Write-Log "Creating TSPlus firewall rules" -Level INFO
+
+        $ports = @(80, 443, 3389, 8080, 5588)
+        $created = 0
+
+        foreach ($port in $ports) {
+            try {
+                $ruleName = "TSPlus - Port $port"
+                $existing = Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
+                if (-not $existing) {
+                    New-NetFirewallRule -DisplayName $ruleName -Direction Inbound -LocalPort $port -Protocol TCP -Action Allow -ErrorAction Stop | Out-Null
+                    $created++
+                }
+            } catch {}
+        }
+
+        [System.Windows.Forms.MessageBox]::Show("Created $created new firewall rule(s).", "Firewall Rules", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+        & $refreshPortsButton.PerformClick()
+    })
+    $panel.Controls.Add($createRulesButton)
+
+    # Initial refresh
+    $refreshPortsButton.PerformClick()
+
+    $TabPage.Controls.Add($panel)
+}
+
+#endregion
+
+#region Tab 7: Connection Monitor
+
+function Initialize-ConnectionMonitorTab {
+    param($TabPage)
+
+    $panel = New-Object System.Windows.Forms.Panel
+    $panel.Dock = "Fill"
+    $panel.Padding = New-Object System.Windows.Forms.Padding(20)
+
+    $y = 10
+
+    # Title
+    $title = New-Object System.Windows.Forms.Label
+    $title.Location = New-Object System.Drawing.Point(10, $y)
+    $title.Size = New-Object System.Drawing.Size(760, 30)
+    $title.Text = "TSPlus Connection Monitor"
+    $title.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
+    $panel.Controls.Add($title)
+    $y += 40
+
+    # Connection list
+    $connectionListView = New-Object System.Windows.Forms.ListView
+    $connectionListView.Location = New-Object System.Drawing.Point(10, $y)
+    $connectionListView.Size = New-Object System.Drawing.Size(760, 300)
+    $connectionListView.View = "Details"
+    $connectionListView.FullRowSelect = $true
+    $connectionListView.GridLines = $true
+    $connectionListView.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+
+    [void]$connectionListView.Columns.Add("Session ID", 80)
+    [void]$connectionListView.Columns.Add("Username", 150)
+    [void]$connectionListView.Columns.Add("State", 100)
+    [void]$connectionListView.Columns.Add("Client IP", 120)
+    [void]$connectionListView.Columns.Add("Logon Time", 150)
+    [void]$connectionListView.Columns.Add("Idle Time", 80)
+
+    $panel.Controls.Add($connectionListView)
+    $y += 310
+
+    # Auto-refresh checkbox
+    $autoRefreshCheck = New-Object System.Windows.Forms.CheckBox
+    $autoRefreshCheck.Location = New-Object System.Drawing.Point(10, $y)
+    $autoRefreshCheck.Size = New-Object System.Drawing.Size(200, 25)
+    $autoRefreshCheck.Text = "Auto-refresh (every 5 seconds)"
+    $autoRefreshCheck.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+    $panel.Controls.Add($autoRefreshCheck)
+    $y += 30
+
+    # Buttons
+    $refreshConnectionsButton = New-Object System.Windows.Forms.Button
+    $refreshConnectionsButton.Location = New-Object System.Drawing.Point(10, $y)
+    $refreshConnectionsButton.Size = New-Object System.Drawing.Size(150, 35)
+    $refreshConnectionsButton.Text = "Refresh Now"
+    $refreshConnectionsButton.BackColor = [System.Drawing.Color]::FromArgb(128, 128, 128)
+    $refreshConnectionsButton.ForeColor = [System.Drawing.Color]::White
+    $refreshConnectionsButton.FlatStyle = "Flat"
+    $refreshConnectionsButton.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+    $refreshConnectionsButton.Add_Click({
+        $connectionListView.Items.Clear()
+        Write-Log "Refreshing connection list" -Level INFO
+
+        try {
+            # Use qwinsta to get session info
+            $sessions = quser 2>$null
+
+            if ($sessions) {
+                $sessions | Select-Object -Skip 1 | ForEach-Object {
+                    $line = $_ -replace '\s+', ' '
+                    $parts = $line.Trim().Split(' ')
+
+                    if ($parts.Count -ge 4) {
+                        $username = $parts[0]
+                        $sessionName = $parts[1]
+                        $sessionId = $parts[2]
+                        $state = $parts[3]
+                        $idleTime = if ($parts.Count -gt 4) { $parts[4] } else { "." }
+                        $logonTime = if ($parts.Count -gt 5) { $parts[5..($parts.Count-1)] -join ' ' } else { "" }
+
+                        # Get client IP
+                        $clientIP = "N/A"
+                        try {
+                            $queryOutput = query session $sessionId 2>$null
+                            if ($queryOutput -match "(\d+\.\d+\.\d+\.\d+)") {
+                                $clientIP = $matches[1]
+                            }
+                        } catch {}
+
+                        $item = New-Object System.Windows.Forms.ListViewItem($sessionId)
+                        $item.SubItems.Add($username)
+                        $item.SubItems.Add($state)
+                        $item.SubItems.Add($clientIP)
+                        $item.SubItems.Add($logonTime)
+                        $item.SubItems.Add($idleTime)
+
+                        if ($state -eq "Active") {
+                            $item.ForeColor = [System.Drawing.Color]::Green
+                        } else {
+                            $item.ForeColor = [System.Drawing.Color]::Gray
+                        }
+
+                        [void]$connectionListView.Items.Add($item)
+                    }
+                }
+            } else {
+                $item = New-Object System.Windows.Forms.ListViewItem("-")
+                $item.SubItems.Add("No active sessions")
+                [void]$connectionListView.Items.Add($item)
+            }
+        } catch {
+            Write-Log "Error refreshing connections: $($_.Exception.Message)" -Level ERROR
+        }
+    })
+    $panel.Controls.Add($refreshConnectionsButton)
+
+    $disconnectButton = New-Object System.Windows.Forms.Button
+    $disconnectButton.Location = New-Object System.Drawing.Point(170, $y)
+    $disconnectButton.Size = New-Object System.Drawing.Size(150, 35)
+    $disconnectButton.Text = "Disconnect Session"
+    $disconnectButton.BackColor = [System.Drawing.Color]::FromArgb(220, 53, 69)
+    $disconnectButton.ForeColor = [System.Drawing.Color]::White
+    $disconnectButton.FlatStyle = "Flat"
+    $disconnectButton.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+    $disconnectButton.Add_Click({
+        if ($connectionListView.SelectedItems.Count -eq 0) {
+            [System.Windows.Forms.MessageBox]::Show("Please select a session.", "No Selection", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+            return
+        }
+
+        $sessionId = $connectionListView.SelectedItems[0].Text
+        $username = $connectionListView.SelectedItems[0].SubItems[1].Text
+
+        $result = [System.Windows.Forms.MessageBox]::Show("Disconnect session $sessionId ($username)?", "Confirm Disconnect", [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Warning)
+
+        if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+            try {
+                logoff $sessionId
+                Write-Log "Disconnected session: $sessionId ($username)" -Level SUCCESS
+                [System.Windows.Forms.MessageBox]::Show("Session disconnected.", "Success", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+                & $refreshConnectionsButton.PerformClick()
+            } catch {
+                [System.Windows.Forms.MessageBox]::Show("Failed to disconnect: $($_.Exception.Message)", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+            }
+        }
+    })
+    $panel.Controls.Add($disconnectButton)
+
+    # Auto-refresh timer
+    $script:autoRefreshTimer = New-Object System.Windows.Forms.Timer
+    $script:autoRefreshTimer.Interval = 5000
+    $script:autoRefreshTimer.Add_Tick({
+        if ($autoRefreshCheck.Checked) {
+            & $refreshConnectionsButton.PerformClick()
+        }
+    })
+    $script:autoRefreshTimer.Start()
+
+    $autoRefreshCheck.Add_CheckedChanged({
+        if ($autoRefreshCheck.Checked) {
+            & $refreshConnectionsButton.PerformClick()
+        }
+    })
+
+    # Initial refresh
+    $refreshConnectionsButton.PerformClick()
+
+    $TabPage.Controls.Add($panel)
+}
+
+#endregion
+
+#region Tab 8: User & Group Manager
+
+function Initialize-UserGroupTab {
+    param($TabPage)
+
+    $panel = New-Object System.Windows.Forms.Panel
+    $panel.Dock = "Fill"
+    $panel.Padding = New-Object System.Windows.Forms.Padding(20)
+
+    $y = 10
+
+    # Title
+    $title = New-Object System.Windows.Forms.Label
+    $title.Location = New-Object System.Drawing.Point(10, $y)
+    $title.Size = New-Object System.Drawing.Size(760, 30)
+    $title.Text = "TSPlus User & Group Management"
+    $title.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
+    $panel.Controls.Add($title)
+    $y += 40
+
+    # Group selection
+    $groupLabel = New-Object System.Windows.Forms.Label
+    $groupLabel.Location = New-Object System.Drawing.Point(10, $y)
+    $groupLabel.Size = New-Object System.Drawing.Size(100, 25)
+    $groupLabel.Text = "Group:"
+    $groupLabel.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+    $panel.Controls.Add($groupLabel)
+
+    $groupCombo = New-Object System.Windows.Forms.ComboBox
+    $groupCombo.Location = New-Object System.Drawing.Point(120, $y)
+    $groupCombo.Size = New-Object System.Drawing.Size(250, 25)
+    $groupCombo.DropDownStyle = "DropDownList"
+    $groupCombo.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+    [void]$groupCombo.Items.Add("Remote Desktop Users")
+    [void]$groupCombo.Items.Add("TSPlusUsers")
+    [void]$groupCombo.Items.Add("Administrators")
+    $groupCombo.SelectedIndex = 0
+    $panel.Controls.Add($groupCombo)
+    $y += 35
+
+    # User list
+    $userListView = New-Object System.Windows.Forms.ListView
+    $userListView.Location = New-Object System.Drawing.Point(10, $y)
+    $userListView.Size = New-Object System.Drawing.Size(760, 250)
+    $userListView.View = "Details"
+    $userListView.FullRowSelect = $true
+    $userListView.GridLines = $true
+    $userListView.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+
+    [void]$userListView.Columns.Add("Username", 200)
+    [void]$userListView.Columns.Add("Domain", 150)
+    [void]$userListView.Columns.Add("Full Name", 250)
+    [void]$userListView.Columns.Add("Type", 140)
+
+    $panel.Controls.Add($userListView)
+    $y += 260
+
+    # Add user section
+    $addUserLabel = New-Object System.Windows.Forms.Label
+    $addUserLabel.Location = New-Object System.Drawing.Point(10, $y)
+    $addUserLabel.Size = New-Object System.Drawing.Size(100, 25)
+    $addUserLabel.Text = "Add User:"
+    $addUserLabel.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+    $panel.Controls.Add($addUserLabel)
+
+    $usernameTextBox = New-Object System.Windows.Forms.TextBox
+    $usernameTextBox.Location = New-Object System.Drawing.Point(120, $y)
+    $usernameTextBox.Size = New-Object System.Drawing.Size(250, 25)
+    $usernameTextBox.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+    $panel.Controls.Add($usernameTextBox)
+    $y += 35
+
+    # Buttons
+    $refreshUsersButton = New-Object System.Windows.Forms.Button
+    $refreshUsersButton.Location = New-Object System.Drawing.Point(10, $y)
+    $refreshUsersButton.Size = New-Object System.Drawing.Size(150, 35)
+    $refreshUsersButton.Text = "Refresh Users"
+    $refreshUsersButton.BackColor = [System.Drawing.Color]::FromArgb(128, 128, 128)
+    $refreshUsersButton.ForeColor = [System.Drawing.Color]::White
+    $refreshUsersButton.FlatStyle = "Flat"
+    $refreshUsersButton.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+    $refreshUsersButton.Add_Click({
+        $userListView.Items.Clear()
+        $groupName = $groupCombo.SelectedItem.ToString()
+        Write-Log "Loading users from group: $groupName" -Level INFO
+
+        try {
+            $group = [ADSI]"WinNT://./$groupName,group"
+            $members = @($group.Invoke("Members"))
+
+            foreach ($member in $members) {
+                $username = $member.GetType().InvokeMember("Name", 'GetProperty', $null, $member, $null)
+                $adspath = $member.GetType().InvokeMember("ADsPath", 'GetProperty', $null, $member, $null)
+
+                $domain = ""
+                $fullName = ""
+                $userType = "User"
+
+                if ($adspath -match "WinNT://([^/]+)/") {
+                    $domain = $matches[1]
+                }
+
+                try {
+                    $userObj = [ADSI]$adspath
+                    $fullName = $userObj.FullName.Value
+                    $class = $userObj.Class.Value
+                    if ($class -eq "Group") {
+                        $userType = "Group"
+                    }
+                } catch {}
+
+                $item = New-Object System.Windows.Forms.ListViewItem($username)
+                $item.SubItems.Add($domain)
+                $item.SubItems.Add($fullName)
+                $item.SubItems.Add($userType)
+
+                [void]$userListView.Items.Add($item)
+            }
+
+            Write-Log "Loaded $($members.Count) members from $groupName" -Level SUCCESS
+        } catch {
+            Write-Log "Error loading group members: $($_.Exception.Message)" -Level ERROR
+            [System.Windows.Forms.MessageBox]::Show("Error loading group members: $($_.Exception.Message)", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+        }
+    })
+    $panel.Controls.Add($refreshUsersButton)
+
+    $addUserButton = New-Object System.Windows.Forms.Button
+    $addUserButton.Location = New-Object System.Drawing.Point(170, $y)
+    $addUserButton.Size = New-Object System.Drawing.Size(150, 35)
+    $addUserButton.Text = "Add User"
+    $addUserButton.BackColor = [System.Drawing.Color]::FromArgb(10, 124, 72)
+    $addUserButton.ForeColor = [System.Drawing.Color]::White
+    $addUserButton.FlatStyle = "Flat"
+    $addUserButton.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+    $addUserButton.Add_Click({
+        if ([string]::IsNullOrWhiteSpace($usernameTextBox.Text)) {
+            [System.Windows.Forms.MessageBox]::Show("Please enter a username.", "Username Required", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+            return
+        }
+
+        if (-not (Test-IsAdmin)) {
+            [System.Windows.Forms.MessageBox]::Show("Administrator privileges required.", "Admin Required", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+            return
+        }
+
+        $groupName = $groupCombo.SelectedItem.ToString()
+        $username = $usernameTextBox.Text.Trim()
+
+        try {
+            $group = [ADSI]"WinNT://./$groupName,group"
+            $group.Add("WinNT://./$username,user")
+            Write-Log "Added user $username to group $groupName" -Level SUCCESS
+            [System.Windows.Forms.MessageBox]::Show("User added successfully.", "Success", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+            $usernameTextBox.Clear()
+            & $refreshUsersButton.PerformClick()
+        } catch {
+            Write-Log "Error adding user: $($_.Exception.Message)" -Level ERROR
+            [System.Windows.Forms.MessageBox]::Show("Error adding user: $($_.Exception.Message)", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+        }
+    })
+    $panel.Controls.Add($addUserButton)
+
+    $removeUserButton = New-Object System.Windows.Forms.Button
+    $removeUserButton.Location = New-Object System.Drawing.Point(330, $y)
+    $removeUserButton.Size = New-Object System.Drawing.Size(150, 35)
+    $removeUserButton.Text = "Remove User"
+    $removeUserButton.BackColor = [System.Drawing.Color]::FromArgb(220, 53, 69)
+    $removeUserButton.ForeColor = [System.Drawing.Color]::White
+    $removeUserButton.FlatStyle = "Flat"
+    $removeUserButton.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+    $removeUserButton.Add_Click({
+        if ($userListView.SelectedItems.Count -eq 0) {
+            [System.Windows.Forms.MessageBox]::Show("Please select a user.", "No Selection", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+            return
+        }
+
+        if (-not (Test-IsAdmin)) {
+            [System.Windows.Forms.MessageBox]::Show("Administrator privileges required.", "Admin Required", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+            return
+        }
+
+        $username = $userListView.SelectedItems[0].Text
+        $groupName = $groupCombo.SelectedItem.ToString()
+
+        $result = [System.Windows.Forms.MessageBox]::Show("Remove user '$username' from group '$groupName'?", "Confirm Remove", [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Warning)
+
+        if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+            try {
+                $group = [ADSI]"WinNT://./$groupName,group"
+                $group.Remove("WinNT://./$username,user")
+                Write-Log "Removed user $username from group $groupName" -Level SUCCESS
+                [System.Windows.Forms.MessageBox]::Show("User removed successfully.", "Success", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+                & $refreshUsersButton.PerformClick()
+            } catch {
+                Write-Log "Error removing user: $($_.Exception.Message)" -Level ERROR
+                [System.Windows.Forms.MessageBox]::Show("Error removing user: $($_.Exception.Message)", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+            }
+        }
+    })
+    $panel.Controls.Add($removeUserButton)
+
+    $groupCombo.Add_SelectedIndexChanged({
+        & $refreshUsersButton.PerformClick()
+    })
+
+    # Initial refresh
+    $refreshUsersButton.PerformClick()
+
+    $TabPage.Controls.Add($panel)
+}
+
+#endregion
+
+#region Tab 9: Health Check & Diagnostics
+
+function Initialize-HealthCheckTab {
+    param($TabPage)
+
+    $panel = New-Object System.Windows.Forms.Panel
+    $panel.Dock = "Fill"
+    $panel.Padding = New-Object System.Windows.Forms.Padding(20)
+
+    $y = 10
+
+    # Title
+    $title = New-Object System.Windows.Forms.Label
+    $title.Location = New-Object System.Drawing.Point(10, $y)
+    $title.Size = New-Object System.Drawing.Size(760, 30)
+    $title.Text = "TSPlus Health Check & Diagnostics"
+    $title.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
+    $panel.Controls.Add($title)
+    $y += 40
+
+    # Results list
+    $resultsListView = New-Object System.Windows.Forms.ListView
+    $resultsListView.Location = New-Object System.Drawing.Point(10, $y)
+    $resultsListView.Size = New-Object System.Drawing.Size(760, 350)
+    $resultsListView.View = "Details"
+    $resultsListView.FullRowSelect = $true
+    $resultsListView.GridLines = $true
+    $resultsListView.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+
+    [void]$resultsListView.Columns.Add("Check", 200)
+    [void]$resultsListView.Columns.Add("Status", 100)
+    [void]$resultsListView.Columns.Add("Details", 440)
+
+    $panel.Controls.Add($resultsListView)
+    $y += 360
+
+    # Buttons
+    $runHealthCheckButton = New-Object System.Windows.Forms.Button
+    $runHealthCheckButton.Location = New-Object System.Drawing.Point(10, $y)
+    $runHealthCheckButton.Size = New-Object System.Drawing.Size(180, 35)
+    $runHealthCheckButton.Text = "Run Health Check"
+    $runHealthCheckButton.BackColor = [System.Drawing.Color]::FromArgb(10, 124, 72)
+    $runHealthCheckButton.ForeColor = [System.Drawing.Color]::White
+    $runHealthCheckButton.FlatStyle = "Flat"
+    $runHealthCheckButton.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+    $runHealthCheckButton.Add_Click({
+        $resultsListView.Items.Clear()
+        Write-Log "Running TSPlus health check" -Level INFO
+
+        $runHealthCheckButton.Enabled = $false
+
+        # Check 1: Installation
+        $item = New-Object System.Windows.Forms.ListViewItem("Installation Check")
+        if (Test-TSPlusInstalled) {
+            $version = Get-TSPlusVersion
+            $item.SubItems.Add("OK")
+            $item.SubItems.Add("TSPlus installed - Version: $version")
+            $item.ForeColor = [System.Drawing.Color]::Green
+        } else {
+            $item.SubItems.Add("FAIL")
+            $item.SubItems.Add("TSPlus not installed")
+            $item.ForeColor = [System.Drawing.Color]::Red
+        }
+        [void]$resultsListView.Items.Add($item)
+
+        # Check 2: Services
+        $item = New-Object System.Windows.Forms.ListViewItem("Services Check")
+        $services = Get-Service | Where-Object { $_.Name -like "*TSplus*" }
+        $runningCount = ($services | Where-Object { $_.Status -eq "Running" }).Count
+        $totalCount = $services.Count
+
+        if ($totalCount -eq 0) {
+            $item.SubItems.Add("WARN")
+            $item.SubItems.Add("No TSPlus services found")
+            $item.ForeColor = [System.Drawing.Color]::Orange
+        } elseif ($runningCount -eq $totalCount) {
+            $item.SubItems.Add("OK")
+            $item.SubItems.Add("All $totalCount services running")
+            $item.ForeColor = [System.Drawing.Color]::Green
+        } else {
+            $item.SubItems.Add("FAIL")
+            $item.SubItems.Add("Only $runningCount of $totalCount services running")
+            $item.ForeColor = [System.Drawing.Color]::Red
+        }
+        [void]$resultsListView.Items.Add($item)
+
+        # Check 3: Ports
+        $item = New-Object System.Windows.Forms.ListViewItem("Port Check")
+        $rdpPort = Get-NetTCPConnection -LocalPort 3389 -State Listen -ErrorAction SilentlyContinue
+        if ($rdpPort) {
+            $item.SubItems.Add("OK")
+            $item.SubItems.Add("RDP port (3389) listening")
+            $item.ForeColor = [System.Drawing.Color]::Green
+        } else {
+            $item.SubItems.Add("FAIL")
+            $item.SubItems.Add("RDP port (3389) not listening")
+            $item.ForeColor = [System.Drawing.Color]::Red
+        }
+        [void]$resultsListView.Items.Add($item)
+
+        # Check 4: Firewall
+        $item = New-Object System.Windows.Forms.ListViewItem("Firewall Check")
+        $rules = Get-NetFirewallRule -DisplayName "*TSPlus*" -Enabled True -ErrorAction SilentlyContinue
+        $ruleCount = $rules.Count
+        if ($ruleCount -gt 0) {
+            $item.SubItems.Add("OK")
+            $item.SubItems.Add("$ruleCount TSPlus firewall rule(s) enabled")
+            $item.ForeColor = [System.Drawing.Color]::Green
+        } else {
+            $item.SubItems.Add("WARN")
+            $item.SubItems.Add("No TSPlus firewall rules found")
+            $item.ForeColor = [System.Drawing.Color]::Orange
+        }
+        [void]$resultsListView.Items.Add($item)
+
+        # Check 5: Disk Space
+        $item = New-Object System.Windows.Forms.ListViewItem("Disk Space Check")
+        $drive = Get-PSDrive -Name C
+        $freeGB = [math]::Round($drive.Free / 1GB, 2)
+        if ($freeGB -gt 10) {
+            $item.SubItems.Add("OK")
+            $item.SubItems.Add("$freeGB GB free on C:")
+            $item.ForeColor = [System.Drawing.Color]::Green
+        } elseif ($freeGB -gt 5) {
+            $item.SubItems.Add("WARN")
+            $item.SubItems.Add("Only $freeGB GB free on C:")
+            $item.ForeColor = [System.Drawing.Color]::Orange
+        } else {
+            $item.SubItems.Add("FAIL")
+            $item.SubItems.Add("Low disk space: $freeGB GB free on C:")
+            $item.ForeColor = [System.Drawing.Color]::Red
+        }
+        [void]$resultsListView.Items.Add($item)
+
+        # Check 6: Configuration Files
+        $item = New-Object System.Windows.Forms.ListViewItem("Configuration Check")
+        if (Test-Path $script:TSPlusConfigPath) {
+            $fileCount = (Get-ChildItem -Path $script:TSPlusConfigPath -File -ErrorAction SilentlyContinue).Count
+            $item.SubItems.Add("OK")
+            $item.SubItems.Add("Config folder exists ($fileCount files)")
+            $item.ForeColor = [System.Drawing.Color]::Green
+        } else {
+            $item.SubItems.Add("WARN")
+            $item.SubItems.Add("Config folder not found")
+            $item.ForeColor = [System.Drawing.Color]::Orange
+        }
+        [void]$resultsListView.Items.Add($item)
+
+        Write-Log "Health check completed" -Level SUCCESS
+        $runHealthCheckButton.Enabled = $true
+
+        # Summary
+        $okCount = ($resultsListView.Items | Where-Object { $_.SubItems[1].Text -eq "OK" }).Count
+        $total = $resultsListView.Items.Count
+        [System.Windows.Forms.MessageBox]::Show(
+            "Health check completed.`n`n$okCount of $total checks passed.",
+            "Health Check Results",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Information
+        ) | Out-Null
+    })
+    $panel.Controls.Add($runHealthCheckButton)
+
+    $exportButton = New-Object System.Windows.Forms.Button
+    $exportButton.Location = New-Object System.Drawing.Point(200, $y)
+    $exportButton.Size = New-Object System.Drawing.Size(150, 35)
+    $exportButton.Text = "Export Report"
+    $exportButton.BackColor = [System.Drawing.Color]::FromArgb(128, 128, 128)
+    $exportButton.ForeColor = [System.Drawing.Color]::White
+    $exportButton.FlatStyle = "Flat"
+    $exportButton.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+    $exportButton.Add_Click({
+        $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+        $reportPath = Join-Path $env:TEMP "TSPlus_HealthReport_$timestamp.txt"
+
+        $report = "TSPlus Health Check Report`n"
+        $report += "Generated: $(Get-Date)`n"
+        $report += "=" * 60 + "`n`n"
+
+        foreach ($item in $resultsListView.Items) {
+            $report += "Check: $($item.Text)`n"
+            $report += "Status: $($item.SubItems[1].Text)`n"
+            $report += "Details: $($item.SubItems[2].Text)`n"
+            $report += "-" * 60 + "`n"
+        }
+
+        $report | Out-File -FilePath $reportPath
+        Write-Log "Health report exported to: $reportPath" -Level SUCCESS
+
+        [System.Windows.Forms.MessageBox]::Show(
+            "Report exported to:`n$reportPath",
+            "Export Complete",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Information
+        ) | Out-Null
+
+        Start-Process -FilePath "notepad.exe" -ArgumentList $reportPath
+    })
+    $panel.Controls.Add($exportButton)
+
+    $TabPage.Controls.Add($panel)
+}
+
+#endregion
+
 #region Main Form
 
 # Create main form
@@ -1266,12 +1995,32 @@ $updateTab = New-Object System.Windows.Forms.TabPage
 $updateTab.Text = "Updates"
 $tabControl.TabPages.Add($updateTab)
 
+$portConfigTab = New-Object System.Windows.Forms.TabPage
+$portConfigTab.Text = "Ports"
+$tabControl.TabPages.Add($portConfigTab)
+
+$connectionTab = New-Object System.Windows.Forms.TabPage
+$connectionTab.Text = "Connections"
+$tabControl.TabPages.Add($connectionTab)
+
+$userGroupTab = New-Object System.Windows.Forms.TabPage
+$userGroupTab.Text = "Users/Groups"
+$tabControl.TabPages.Add($userGroupTab)
+
+$healthCheckTab = New-Object System.Windows.Forms.TabPage
+$healthCheckTab.Text = "Health Check"
+$tabControl.TabPages.Add($healthCheckTab)
+
 # Initialize tabs
 Initialize-UninstallerTab -TabPage $uninstallTab
 Initialize-LicenseTab -TabPage $licenseTab
 Initialize-ServiceTab -TabPage $serviceTab
 Initialize-BackupTab -TabPage $backupTab
 Initialize-UpdateTab -TabPage $updateTab
+Initialize-PortConfigTab -TabPage $portConfigTab
+Initialize-ConnectionMonitorTab -TabPage $connectionTab
+Initialize-UserGroupTab -TabPage $userGroupTab
+Initialize-HealthCheckTab -TabPage $healthCheckTab
 
 $mainForm.Controls.Add($tabControl)
 
