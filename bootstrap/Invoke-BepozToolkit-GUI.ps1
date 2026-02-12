@@ -387,11 +387,23 @@ function Invoke-SelectedTool {
         Write-Log "Tool process started (PID: $($process.Id))" -Level INFO
         $Script:StatusLabel.Text = "Tool is running (see console window)..."
 
+        # Capture output and errors
+        $stdout = $process.StandardOutput.ReadToEnd()
+        $stderr = $process.StandardError.ReadToEnd()
+
         # Wait for process to complete
         $process.WaitForExit()
 
         $exitCode = $process.ExitCode
         Write-Log "Tool completed with exit code: $exitCode" -Level $(if ($exitCode -eq 0) { 'SUCCESS' } else { 'WARN' })
+
+        # Log captured output
+        if ($stdout) {
+            Write-Log "Tool output: $stdout" -Level INFO
+        }
+        if ($stderr) {
+            Write-Log "Tool errors: $stderr" -Level ERROR
+        }
 
         if ($exitCode -eq 0) {
             $Script:StatusLabel.Text = "Tool completed successfully"
@@ -402,12 +414,16 @@ function Invoke-SelectedTool {
                 [System.Windows.Forms.MessageBoxIcon]::Information
             )
         } else {
-            $Script:StatusLabel.Text = "Tool completed with warnings"
+            $Script:StatusLabel.Text = "Tool completed with errors"
+            $errorMsg = "Tool completed with exit code: $exitCode"
+            if ($stderr) {
+                $errorMsg += "`n`nError details:`n$stderr"
+            }
             [System.Windows.Forms.MessageBox]::Show(
-                "Tool completed with exit code: $exitCode`n`nCheck the log for details.",
-                "Warning",
+                $errorMsg,
+                "Error",
                 [System.Windows.Forms.MessageBoxButtons]::OK,
-                [System.Windows.Forms.MessageBoxIcon]::Warning
+                [System.Windows.Forms.MessageBoxIcon]::Error
             )
         }
 
