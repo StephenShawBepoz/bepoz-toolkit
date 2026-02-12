@@ -693,36 +693,42 @@ function Show-ToolkitGUI {
     $viewLogsButton.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(138, 168, 221)  # Bepoz Light Blue
     $viewLogsButton.Cursor = [System.Windows.Forms.Cursors]::Hand
     $viewLogsButton.Add_Click({
-        $logDir = "C:\Bepoz\Toolkit\Logs"
+        $toolLogDir = Join-Path $env:TEMP "BepozToolkit\Logs"
+        $targetLogFile = $null
 
-        if (Test-Path $logDir) {
-            Write-Log "Opening logs directory: $logDir" -Level INFO
-            Start-Process explorer.exe -ArgumentList $logDir
-        }
-        else {
-            $result = [System.Windows.Forms.MessageBox]::Show(
-                "Logs directory does not exist yet:`n$logDir`n`nLogs are created when you run tools.`n`nWould you like to create this directory now?",
-                "Logs Directory Not Found",
-                [System.Windows.Forms.MessageBoxButtons]::YesNo,
-                [System.Windows.Forms.MessageBoxIcon]::Question
-            )
+        # Prefer today's log for the selected tool when available
+        if ($Script:SelectedTool -and $Script:SelectedTool.name) {
+            $today = Get-Date -Format "yyyyMMdd"
+            $safeToolName = $Script:SelectedTool.name -replace '[^a-zA-Z0-9]', ''
+            $selectedToolLog = Join-Path $toolLogDir "${safeToolName}_${today}.log"
 
-            if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
-                try {
-                    New-Item -Path $logDir -ItemType Directory -Force | Out-Null
-                    Write-Log "Created logs directory: $logDir" -Level SUCCESS
-                    Start-Process explorer.exe -ArgumentList $logDir
-                }
-                catch {
-                    Write-Log "Failed to create logs directory: $($_.Exception.Message)" -Level ERROR
-                    [System.Windows.Forms.MessageBox]::Show(
-                        "Failed to create logs directory:`n$($_.Exception.Message)",
-                        "Error",
-                        [System.Windows.Forms.MessageBoxButtons]::OK,
-                        [System.Windows.Forms.MessageBoxIcon]::Error
-                    )
-                }
+            if (Test-Path $selectedToolLog) {
+                $targetLogFile = $selectedToolLog
             }
+        }
+
+        # Otherwise open the most recent tool log file
+        if (-not $targetLogFile -and (Test-Path $toolLogDir)) {
+            $targetLogFile = Get-ChildItem -Path $toolLogDir -Filter "*.log" -ErrorAction SilentlyContinue |
+                Sort-Object LastWriteTime -Descending |
+                Select-Object -First 1 -ExpandProperty FullName
+        }
+
+        # Final fallback to the bootstrap log file
+        if (-not $targetLogFile -and (Test-Path $Script:LogFile)) {
+            $targetLogFile = $Script:LogFile
+        }
+
+        if ($targetLogFile -and (Test-Path $targetLogFile)) {
+            Write-Log "Opening log file: $targetLogFile" -Level INFO
+            Start-Process -FilePath $targetLogFile
+        } else {
+            [System.Windows.Forms.MessageBox]::Show(
+                "No log file found yet.`n`nRun a tool first, then click View Logs again.",
+                "No Logs Available",
+                [System.Windows.Forms.MessageBoxButtons]::OK,
+                [System.Windows.Forms.MessageBoxIcon]::Information
+            ) | Out-Null
         }
     })
     $logPanel.Controls.Add($viewLogsButton)

@@ -3,10 +3,9 @@
     BepozLogger - Centralized logging for Bepoz Toolkit tools
 .DESCRIPTION
     Provides standardized logging functions for all toolkit tools
-    - Writes to C:\Bepoz\Toolkit\Logs\
+    - Writes to %TEMP%\BepozToolkit\Logs\
     - Logs user actions, queries, performance, errors
     - Automatic log rotation (keeps 30 days)
-    - Fallback to TEMP if C:\ not writable
 .NOTES
     Version: 1.0.0
     Author: Bepoz Support Team
@@ -14,11 +13,10 @@
 #>
 
 #region Configuration
-$Script:LogDirectory = "C:\Bepoz\Toolkit\Logs"
+$Script:LogDirectory = Join-Path ([System.IO.Path]::GetTempPath()) "BepozToolkit\Logs"
 $Script:LogRetentionDays = 30
 $Script:CurrentLogFile = $null
 $Script:LoggingEnabled = $true
-$Script:FallbackToTemp = $true
 #endregion
 
 #region Initialization
@@ -41,23 +39,8 @@ function Initialize-BepozLogger {
     try {
         # Create log directory if it doesn't exist
         if (-not (Test-Path $Script:LogDirectory)) {
-            try {
-                New-Item -Path $Script:LogDirectory -ItemType Directory -Force | Out-Null
-                Write-Host "[Logger] Created log directory: $Script:LogDirectory" -ForegroundColor Green
-            }
-            catch {
-                # Fallback to TEMP if C:\ not writable
-                if ($Script:FallbackToTemp) {
-                    $Script:LogDirectory = Join-Path $env:TEMP "BepozToolkit\Logs"
-                    New-Item -Path $Script:LogDirectory -ItemType Directory -Force | Out-Null
-                    Write-Host "[Logger] Using fallback log directory: $Script:LogDirectory" -ForegroundColor Yellow
-                }
-                else {
-                    Write-Host "[Logger] Failed to create log directory: $($_.Exception.Message)" -ForegroundColor Red
-                    $Script:LoggingEnabled = $false
-                    return $null
-                }
-            }
+            New-Item -Path $Script:LogDirectory -ItemType Directory -Force | Out-Null
+            Write-Host "[Logger] Created log directory: $Script:LogDirectory" -ForegroundColor Green
         }
 
         # Create log filename: ToolName_YYYYMMDD.log

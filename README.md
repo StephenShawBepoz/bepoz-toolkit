@@ -183,7 +183,7 @@ See: [docs/guides/BEPOZ_THEME_GUIDE.md](docs/guides/BEPOZ_THEME_GUIDE.md)
 
 ## 🪵 Centralized Logging
 
-All tool operations are logged to `C:\Bepoz\Toolkit\Logs\ToolName_YYYYMMDD.log`
+All tool operations are logged to `%TEMP%\BepozToolkit\Logs\ToolName_YYYYMMDD.log`
 
 ### Features
 
@@ -515,7 +515,7 @@ Invoke-WebRequest -Uri $url -OutFile $dest -Headers $headers -UseBasicParsing
 ### For Support Teams
 
 1. ✅ **Use GUI version** - Easier for non-technical users
-2. ✅ **Check logs** - `C:\Bepoz\Toolkit\Logs\` for troubleshooting
+2. ✅ **Check logs** - `%TEMP%\BepozToolkit\Logs\` for troubleshooting
 3. ✅ **View documentation** - Click docs button for tool help
 4. ✅ **Save in ScreenConnect** - One-click access to toolkit
 5. ✅ **Run as user** - Not as SYSTEM (registry access)
@@ -569,7 +569,7 @@ Invoke-WebRequest -Uri $url -OutFile $dest -Headers $headers -UseBasicParsing
 ## 🤝 Support
 
 **For Issues:**
-- Check logs: `C:\Bepoz\Toolkit\Logs\`
+- Check logs: `%TEMP%\BepozToolkit\Logs\`
 - Review tool documentation (click "View Documentation")
 - Test tools independently before blaming toolkit
 - Contact: Bepoz Support Team (steve.balderson@gmail.com)
