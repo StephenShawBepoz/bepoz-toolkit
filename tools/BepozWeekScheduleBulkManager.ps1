@@ -10,7 +10,7 @@
     Version 2.0 - Now uses centralized BepozDbCore module for database operations.
 .NOTES
     Author: Bepoz Administration Team
-    Version: 2.0.3
+    Version: 2.0.4
     PowerShell Version: 5.1+
     Dependencies: BepozDbCore.ps1 (loaded from temp directory by toolkit)
 
@@ -340,10 +340,10 @@ catch {
 
 function Get-Venues {
     [CmdletBinding()]
-    param([string]$ConnectionString)
+    param()
     
     $query = "SELECT VenueID, Name FROM dbo.Venue ORDER BY VenueID"
-    return Invoke-BepozQuery -ConnectionString $ConnectionString -Query $query
+    return Invoke-BepozQuery -Query $query
 }
 
 function Get-Workstations {
@@ -372,7 +372,7 @@ WHERE s.VenueID = @VenueID
   $disabledFilter
 ORDER BY s.Name, w.Name
 "@
-        return Invoke-BepozQuery -ConnectionString $ConnectionString -Query $query -Parameters @{ '@VenueID' = $VenueID }
+        return Invoke-BepozQuery -Query $query -Parameters @{ '@VenueID' = $VenueID }
     }
     else {
         # Specific store
@@ -389,7 +389,7 @@ WHERE w.StoreID = @StoreID
   $disabledFilter
 ORDER BY w.Name
 "@
-        return Invoke-BepozQuery -ConnectionString $ConnectionString -Query $query -Parameters @{ '@StoreID' = $StoreID }
+        return Invoke-BepozQuery -Query $query -Parameters @{ '@StoreID' = $StoreID }
     }
 }
 
@@ -407,15 +407,15 @@ WHERE VenueID = @VenueID
 ORDER BY Name
 "@
     
-    return Invoke-BepozQuery -ConnectionString $ConnectionString -Query $query -Parameters @{ '@VenueID' = $VenueID }
+    return Invoke-BepozQuery -Query $query -Parameters @{ '@VenueID' = $VenueID }
 }
 
 function Get-KeySets {
     [CmdletBinding()]
-    param([string]$ConnectionString)
+    param()
     
     $query = "SELECT KeySetID, KeySetName FROM dbo.KeySet ORDER BY KeySetID"
-    return Invoke-BepozQuery -ConnectionString $ConnectionString -Query $query
+    return Invoke-BepozQuery -Query $query
 }
 
 function Get-VenuePriceNames {
@@ -433,15 +433,15 @@ FROM dbo.Venue
 WHERE VenueID = @VenueID
 "@
     
-    return Invoke-BepozQuery -ConnectionString $ConnectionString -Query $query -Parameters @{ '@VenueID' = $VenueID }
+    return Invoke-BepozQuery -Query $query -Parameters @{ '@VenueID' = $VenueID }
 }
 
 function Get-PointsProfiles {
     [CmdletBinding()]
-    param([string]$ConnectionString)
+    param()
     
     $query = "SELECT PointsProfileID, Name FROM dbo.PointsProfile ORDER BY PointsProfileID"
-    return Invoke-BepozQuery -ConnectionString $ConnectionString -Query $query
+    return Invoke-BepozQuery -Query $query
 }
 
 function Get-OverrideMaps {
@@ -450,7 +450,7 @@ function Get-OverrideMaps {
         Retrieves Override Maps from dbo.Map where MapType = 2
     #>
     [CmdletBinding()]
-    param([string]$ConnectionString)
+    param()
     
     $query = @"
 SELECT MapID, Name
@@ -459,15 +459,15 @@ WHERE MapType = 2
 ORDER BY Name
 "@
     
-    return Invoke-BepozQuery -ConnectionString $ConnectionString -Query $query
+    return Invoke-BepozQuery -Query $query
 }
 
 function Get-TableMaps {
     [CmdletBinding()]
-    param([string]$ConnectionString)
+    param()
     
     $query = "SELECT TableMapSetID, TableMapSetName FROM dbo.TableMapSet ORDER BY TableMapSetID"
-    return Invoke-BepozQuery -ConnectionString $ConnectionString -Query $query
+    return Invoke-BepozQuery -Query $query
 }
 
 function Get-VenueShiftNames {
@@ -485,7 +485,7 @@ FROM dbo.Venue
 WHERE VenueID = @VenueID
 "@
     
-    return Invoke-BepozQuery -ConnectionString $ConnectionString -Query $query -Parameters @{ '@VenueID' = $VenueID }
+    return Invoke-BepozQuery -Query $query -Parameters @{ '@VenueID' = $VenueID }
 }
 
 function Get-ExistingSchedules {
@@ -512,7 +512,7 @@ WHERE VenueID = @VenueID
   AND WorkstationID IN ($wsIDList)
 "@
     
-    return Invoke-BepozQuery -ConnectionString $ConnectionString -Query $query -Parameters @{ '@VenueID' = $VenueID }
+    return Invoke-BepozQuery -Query $query -Parameters @{ '@VenueID' = $VenueID }
 }
 
 #endregion
@@ -542,7 +542,7 @@ WHERE VenueID = @VenueID
         '@MinutesOffset' = $MinutesOffset
     }
     
-    $result = Invoke-BepozQuery -ConnectionString $ConnectionString -Query $query -Parameters $params
+    $result = Invoke-BepozQuery -Query $query -Parameters $params
     
     return ($result.Rows[0]['RecordCount'] -gt 0)
 }
@@ -587,7 +587,7 @@ VALUES (
         '@ChangeShift' = $ChangeShift
     }
     
-    return Invoke-BepozNonQuery -ConnectionString $ConnectionString -Query $query -Parameters $params
+    return Invoke-BepozNonQuery -Query $query -Parameters $params
 }
 
 function Update-WeekSchedule {
@@ -631,7 +631,7 @@ WHERE VenueID = @VenueID
         '@ChangeShift' = $ChangeShift
     }
     
-    return Invoke-BepozNonQuery -ConnectionString $ConnectionString -Query $query -Parameters $params
+    return Invoke-BepozNonQuery -Query $query -Parameters $params
 }
 
 function Remove-WeekSchedule {
@@ -653,7 +653,7 @@ WHERE VenueID = @VenueID
         '@WorkstationID' = $WorkstationID
     }
     
-    return Invoke-BepozNonQuery -ConnectionString $ConnectionString -Query $query -Parameters $params
+    return Invoke-BepozNonQuery -Query $query -Parameters $params
 }
 
 #endregion
@@ -724,7 +724,7 @@ function ConvertFrom-DayAndTime {
 
 function Show-WeekScheduleManager {
     [CmdletBinding()]
-    param([string]$ConnectionString)
+    param()
     
     # Create main form
     $form = New-Object System.Windows.Forms.Form
@@ -1102,7 +1102,7 @@ function Show-WeekScheduleManager {
             
             Write-Host "Loading venues..." -ForegroundColor Yellow
             
-            $venues = Get-Venues -ConnectionString $ConnectionString
+            $venues = Get-Venues
             
             $cmbVenue.Items.Clear()
             
@@ -1143,7 +1143,7 @@ function Show-WeekScheduleManager {
             
             Write-Host "Loading stores for VenueID: $VenueID..." -ForegroundColor Yellow
             
-            $stores = Get-Stores -ConnectionString $ConnectionString -VenueID $VenueID
+            $stores = Get-Stores -VenueID $VenueID
             
             $cmbStore.Items.Clear()
             
@@ -1185,7 +1185,7 @@ function Show-WeekScheduleManager {
             
             Write-Host "Loading workstations (VenueID: $VenueID, StoreID: $StoreID, IncludeDisabled: $includeDisabled)..." -ForegroundColor Yellow
             
-            $workstations = Get-Workstations -ConnectionString $ConnectionString -VenueID $VenueID -StoreID $StoreID -IncludeDisabled $includeDisabled
+            $workstations = Get-Workstations -VenueID $VenueID -StoreID $StoreID -IncludeDisabled $includeDisabled
             
             $clbWorkstations.Items.Clear()
             
@@ -1245,7 +1245,7 @@ function Show-WeekScheduleManager {
                 Load-Workstations -VenueID $venueID -StoreID (Get-ComboBoxItemValue $cmbStore.SelectedItem)
                 
                 # Load KeySets
-                $keySets = Get-KeySets -ConnectionString $ConnectionString
+                $keySets = Get-KeySets
                 $cmbKeySet.Items.Clear()
                 
                 # Add "No Change" option first
@@ -1263,7 +1263,7 @@ function Show-WeekScheduleManager {
                 $cmbKeySet.SelectedIndex = 0
                 
                 # Load Price Names
-                $priceNames = Get-VenuePriceNames -ConnectionString $ConnectionString -VenueID $venueID
+                $priceNames = Get-VenuePriceNames -VenueID $venueID
                 $cmbPrice.Items.Clear()
                 
                 # Add "No Change" option first
@@ -1281,7 +1281,7 @@ function Show-WeekScheduleManager {
                 $cmbPrice.SelectedIndex = 0
                 
                 # Load Points Profiles
-                $pointsProfiles = Get-PointsProfiles -ConnectionString $ConnectionString
+                $pointsProfiles = Get-PointsProfiles
                 $cmbPoints.Items.Clear()
                 
                 # Add "No Change" option first
@@ -1299,7 +1299,7 @@ function Show-WeekScheduleManager {
                 $cmbPoints.SelectedIndex = 0
                 
                 # Load Table Maps
-                $tableMaps = Get-TableMaps -ConnectionString $ConnectionString
+                $tableMaps = Get-TableMaps
                 $cmbTableMap.Items.Clear()
                 
                 # Add "No Change" option first
@@ -1317,7 +1317,7 @@ function Show-WeekScheduleManager {
                 $cmbTableMap.SelectedIndex = 0
                 
                 # Load Shift Names
-                $shiftNames = Get-VenueShiftNames -ConnectionString $ConnectionString -VenueID $venueID
+                $shiftNames = Get-VenueShiftNames -VenueID $venueID
                 $cmbShift.Items.Clear()
                 
                 # Add "No Change" option first
@@ -1335,7 +1335,7 @@ function Show-WeekScheduleManager {
                 $cmbShift.SelectedIndex = 0
                 
                 # Load Override Maps
-                $overrideMaps = Get-OverrideMaps -ConnectionString $ConnectionString
+                $overrideMaps = Get-OverrideMaps
                 $cmbOverride.Items.Clear()
                 
                 # Add "No Change" option first
@@ -1612,7 +1612,7 @@ function Show-WeekScheduleManager {
             
             # Check DataVer from Global table to determine if KioskID column exists
             $dataVerQuery = "SELECT DataVer FROM dbo.Global"
-            $dataVerResult = Invoke-BepozQuery -ConnectionString $ConnectionString -Query $dataVerQuery
+            $dataVerResult = Invoke-BepozQuery -Query $dataVerQuery
             $dataVer = if ($dataVerResult.Rows.Count -gt 0) { [int]$dataVerResult.Rows[0]['DataVer'] } else { 0 }
             $supportsKiosk = ($dataVer -ge 4729)
             
@@ -1684,7 +1684,7 @@ WHERE ws.VenueID = @VenueID
 ORDER BY ws.MinutesOffset, w.Name
 "@
             
-            $schedules = Invoke-BepozQuery -ConnectionString $ConnectionString `
+            $schedules = Invoke-BepozQuery `
                 -Query $query -Parameters @{ '@VenueID' = $venueID }
             
             if ($schedules.Rows.Count -eq 0) {
@@ -2071,7 +2071,7 @@ WORKSTATIONS TO PROCESS ($($selectedWorkstations.Count)):
                 $previewText += "`n`n$($ws.Text):"
                 
                 foreach ($dayOffset in $dayOffsets) {
-                    $exists = Test-ScheduleExists -ConnectionString $ConnectionString -VenueID $venueID -WorkstationID $wsID -MinutesOffset $dayOffset.Offset
+                    $exists = Test-ScheduleExists -VenueID $venueID -WorkstationID $wsID -MinutesOffset $dayOffset.Offset
                     
                     if ($exists) {
                         $previewText += "`n  [UPDATE] $($dayOffset.Day) at offset $($dayOffset.Offset)"
@@ -2236,12 +2236,12 @@ WORKSTATIONS TO PROCESS ($($selectedWorkstations.Count)):
                     $dayName = $dayOffset.Day
                     
                     try {
-                        $exists = Test-ScheduleExists -ConnectionString $ConnectionString -VenueID $venueID -WorkstationID $wsID -MinutesOffset $minutesOffset
+                        $exists = Test-ScheduleExists -VenueID $venueID -WorkstationID $wsID -MinutesOffset $minutesOffset
                     
                     if ($exists) {
                         Write-Host "  Updating WorkstationID: $wsID ($($ws.WorkstationName))..." -ForegroundColor Yellow
                         
-                        Update-WeekSchedule -ConnectionString $ConnectionString `
+                        Update-WeekSchedule `
                             -VenueID $venueID `
                             -WorkstationID $wsID `
                             -MinutesOffset $minutesOffset `
@@ -2258,7 +2258,7 @@ WORKSTATIONS TO PROCESS ($($selectedWorkstations.Count)):
                     else {
                         Write-Host "  Inserting WorkstationID: $wsID ($($ws.WorkstationName))..." -ForegroundColor Yellow
                         
-                        New-WeekSchedule -ConnectionString $ConnectionString `
+                        New-WeekSchedule `
                             -VenueID $venueID `
                             -WorkstationID $wsID `
                             -MinutesOffset $minutesOffset `
@@ -2388,7 +2388,7 @@ WORKSTATIONS TO PROCESS ($($selectedWorkstations.Count)):
                 try {
                     Write-Host "  Deleting WorkstationID: $wsID ($($ws.WorkstationName))..." -ForegroundColor Yellow
                     
-                    $rowsDeleted = Remove-WeekSchedule -ConnectionString $ConnectionString -VenueID $venueID -WorkstationID $wsID
+                    $rowsDeleted = Remove-WeekSchedule -VenueID $venueID -WorkstationID $wsID
                     
                     Write-Host "    Deleted $rowsDeleted record(s)" -ForegroundColor Green
                     $deleteCount += $rowsDeleted
