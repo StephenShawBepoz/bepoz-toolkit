@@ -9,9 +9,15 @@
     - Parameterized queries
     - Defensive error handling
 .NOTES
-    Version: 1.3.0
+    Version: 1.3.1
     Author: Bepoz Support Team
-    Last Updated: 2026-02-11
+    Last Updated: 2026-02-12
+
+    Changelog:
+    - 1.3.1: Removed Export-ModuleMember (only valid in .psm1 modules, not .ps1 scripts)
+    - 1.3.0: Added Get-BepozDbInfo, auto-logging integration
+    - 1.2.0: Added stored procedure support
+    - 1.1.0: Initial production version
 
     Critical Patterns:
     - Always returns System.Data.DataTable from queries
@@ -498,19 +504,8 @@ function Get-BepozDbInfo {
 #endregion
 
 #region Module Initialization
-# Export functions
-Export-ModuleMember -Function @(
-    'Get-BepozDatabaseConfig',
-    'Get-BepozConnectionString',
-    'Get-BepozDbInfo',
-    'Invoke-BepozQuery',
-    'Invoke-BepozNonQuery',
-    'Invoke-BepozStoredProc',
-    'Test-BepozDatabaseConnection'
-)
-
 # Display load message if run interactively
 if ($Host.Name -eq 'ConsoleHost') {
-    Write-Host "[BepozDbCore v1.3.0] Module loaded successfully" -ForegroundColor Green
+    Write-Host "[BepozDbCore v1.3.1] Module loaded successfully" -ForegroundColor Green
 }
 #endregion

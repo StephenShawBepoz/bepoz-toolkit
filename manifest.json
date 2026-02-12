@@ -8,7 +8,7 @@
   },
   "modules": {
     "BepozDbCore": {
-      "version": "1.3.0",
+      "version": "1.3.1",
       "file": "modules/BepozDbCore.ps1",
       "description": "Core database functions for Bepoz SQL access (auto-logs all queries)"
     },
@@ -33,6 +33,11 @@
       "id": "scheduling",
       "name": "Scheduling",
       "description": "Tools for managing schedules and time-based operations"
+    },
+    {
+      "id": "system",
+      "name": "System Configuration",
+      "description": "System settings, API configuration, and firewall management"
     }
   ],
   "tools": [
@@ -47,6 +52,18 @@
       "requiresDatabase": true,
       "author": "Bepoz Administration Team",
       "documentation": "https://github.com/StephenShawBepoz/bepoz-toolkit/wiki/WeekSchedule-Bulk-Manager"
+    },
+    {
+      "id": "webapi-settings",
+      "name": "Web API Settings",
+      "category": "system",
+      "file": "tools/BepozWebApiSettings.ps1",
+      "description": "Manage Web API configuration (Secret Key, Client ID, Port) and Windows Firewall rules",
+      "version": "2.0.0",
+      "requiresAdmin": false,
+      "requiresDatabase": true,
+      "author": "Bepoz Administration Team",
+      "documentation": ""
     }
   ]
 }
