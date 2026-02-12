@@ -28,71 +28,81 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // ------------------------------------------------------------------
-        // 1. Ensure data directories exist
-        // ------------------------------------------------------------------
-        EnsureDirectories();
-
-        // ------------------------------------------------------------------
-        // 2. Initialize Serilog
-        // ------------------------------------------------------------------
-        InitializeLogging();
-
-        Log.Information("=== {AppName} v{Version} starting ===", Constants.AppName, Constants.AppVersion);
-
-        // ------------------------------------------------------------------
-        // 3. Wire up global exception handlers (before any async work)
-        // ------------------------------------------------------------------
-        DispatcherUnhandledException += OnDispatcherUnhandledException;
-        AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
-        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
-
-        // ------------------------------------------------------------------
-        // 4. Build DI container
-        // ------------------------------------------------------------------
-        var services = new ServiceCollection();
-        ConfigureServices(services);
-        _serviceProvider = services.BuildServiceProvider();
-        Services = _serviceProvider;
-
-        // ------------------------------------------------------------------
-        // 5. Initialize database
-        // ------------------------------------------------------------------
         try
         {
-            var db = _serviceProvider.GetRequiredService<BepozToolkitDb>();
-            await db.InitializeAsync();
-            Log.Information("Database initialized successfully");
+            // ------------------------------------------------------------------
+            // 1. Ensure data directories exist
+            // ------------------------------------------------------------------
+            EnsureDirectories();
+
+            // ------------------------------------------------------------------
+            // 2. Initialize Serilog
+            // ------------------------------------------------------------------
+            InitializeLogging();
+
+            Log.Information("=== {AppName} v{Version} starting ===", Constants.AppName, Constants.AppVersion);
+
+            // ------------------------------------------------------------------
+            // 3. Wire up global exception handlers (before any async work)
+            // ------------------------------------------------------------------
+            DispatcherUnhandledException += OnDispatcherUnhandledException;
+            AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
+            TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+
+            // ------------------------------------------------------------------
+            // 4. Build DI container
+            // ------------------------------------------------------------------
+            var services = new ServiceCollection();
+            ConfigureServices(services);
+            _serviceProvider = services.BuildServiceProvider();
+            Services = _serviceProvider;
+
+            // ------------------------------------------------------------------
+            // 5. Initialize database
+            // ------------------------------------------------------------------
+            try
+            {
+                var db = _serviceProvider.GetRequiredService<BepozToolkitDb>();
+                await db.InitializeAsync();
+                Log.Information("Database initialized successfully");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to initialize database");
+            }
+
+            // ------------------------------------------------------------------
+            // 6. Load user settings and apply theme
+            // ------------------------------------------------------------------
+            try
+            {
+                var settingsService = _serviceProvider.GetRequiredService<ISettingsService>();
+                var settings = await settingsService.LoadSettingsAsync();
+                ApplyTheme(settings.Theme);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to load settings on startup; using defaults");
+                ApplyTheme("BepozLight");
+            }
+
+            // ------------------------------------------------------------------
+            // 7. Create and show MainWindow
+            // ------------------------------------------------------------------
+            var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+            mainWindow.DataContext = _serviceProvider.GetRequiredService<MainViewModel>();
+            MainWindow = mainWindow;
+            mainWindow.Show();
+
+            Log.Information("MainWindow shown successfully");
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to initialize database");
+            var msg = $"Fatal startup error:\n\n{ex}";
+            Log.Fatal(ex, "Fatal startup error");
+            MessageBox.Show(msg, "Bepoz Toolkit - Startup Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown(1);
         }
-
-        // ------------------------------------------------------------------
-        // 6. Load user settings and apply theme
-        // ------------------------------------------------------------------
-        try
-        {
-            var settingsService = _serviceProvider.GetRequiredService<ISettingsService>();
-            var settings = await settingsService.LoadSettingsAsync();
-            ApplyTheme(settings.Theme);
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, "Failed to load settings on startup; using defaults");
-            ApplyTheme("BepozLight");
-        }
-
-        // ------------------------------------------------------------------
-        // 7. Create and show MainWindow
-        // ------------------------------------------------------------------
-        var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
-        mainWindow.DataContext = _serviceProvider.GetRequiredService<MainViewModel>();
-        MainWindow = mainWindow;
-        mainWindow.Show();
-
-        Log.Information("MainWindow shown successfully");
     }
 
     protected override void OnExit(ExitEventArgs e)
