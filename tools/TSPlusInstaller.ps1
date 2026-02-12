@@ -91,6 +91,7 @@ $loggerModule = Get-ChildItem -Path $env:TEMP -Filter "BepozLogger.ps1" -ErrorAc
                 Sort-Object LastWriteTime -Descending | Select-Object -First 1
 
 $script:BepozLoggerAvailable = $false
+$script:CentralLogFile = $null
 if ($loggerModule) {
     try {
         . $loggerModule.FullName
@@ -472,8 +473,13 @@ function Complete-WithError {
         Write-BepozLogError -Message "Installation failed: $Message"
     }
 
+    $logFiles = $Script:LogFile
+    if ($script:CentralLogFile) {
+        $logFiles += "`r`n$($script:CentralLogFile)"
+    }
+
     [System.Windows.Forms.MessageBox]::Show(
-        "TSPlus install failed:`r`n`r`n$Message`r`n`r`nLog files:`r`n$($Script:LogFile)`r`n$($script:CentralLogFile)",
+        "TSPlus install failed:`r`n`r`n$Message`r`n`r`nLog files:`r`n$logFiles",
         "TSPlus Install - Failed",
         [System.Windows.Forms.MessageBoxButtons]::OK,
         [System.Windows.Forms.MessageBoxIcon]::Error
