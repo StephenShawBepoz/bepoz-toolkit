@@ -13,7 +13,7 @@
       "description": "Core database functions for Bepoz SQL access (auto-logs all queries)"
     },
     "BepozLogger": {
-      "version": "1.0.0",
+      "version": "1.0.1",
       "file": "modules/BepozLogger.ps1",
       "description": "Centralized logging for tools (user actions, queries, performance)"
     },

@@ -7,9 +7,13 @@
     - Logs user actions, queries, performance, errors
     - Automatic log rotation (keeps 30 days)
 .NOTES
-    Version: 1.0.0
+    Version: 1.0.1
     Author: Bepoz Support Team
-    Last Updated: 2026-02-11
+    Last Updated: 2026-02-12
+
+    Changelog:
+    - 1.0.1: Removed Export-ModuleMember (only valid in .psm1 modules, not .ps1 scripts)
+    - 1.0.0: Initial release
 #>
 
 #region Configuration
@@ -353,17 +357,8 @@ function Get-BepozLogPath {
 }
 #endregion
 
-#region Module Exports
-Export-ModuleMember -Function @(
-    'Initialize-BepozLogger',
-    'Write-BepozLog',
-    'Write-BepozLogAction',
-    'Write-BepozLogQuery',
-    'Write-BepozLogPerformance',
-    'Write-BepozLogError',
-    'Measure-BepozOperation',
-    'Get-BepozLogPath'
-)
+# Note: Export-ModuleMember removed - not valid in .ps1 scripts (only .psm1 modules)
+# All functions are automatically available when dot-sourcing a .ps1 script
 
 # Display load message if run interactively
 if ($Host.Name -eq 'ConsoleHost') {
