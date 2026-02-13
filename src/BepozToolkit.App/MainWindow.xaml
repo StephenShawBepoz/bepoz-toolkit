@@ -335,19 +335,19 @@
                 <Grid>
                     <!-- Dashboard -->
                     <views:DashboardView x:Name="DashboardContent"
-                        Visibility="{Binding IsDashboardSelected, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        Visibility="{Binding DataContext.IsDashboardSelected, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
                     <!-- Tools -->
                     <views:ToolsView x:Name="ToolsContent"
-                        Visibility="{Binding IsToolsSelected, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        Visibility="{Binding DataContext.IsToolsSelected, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
                     <!-- Logs -->
                     <views:LogsView x:Name="LogsContent"
-                        Visibility="{Binding IsLogsSelected, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        Visibility="{Binding DataContext.IsLogsSelected, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
                     <!-- Settings -->
                     <views:SettingsView x:Name="SettingsContent"
-                        Visibility="{Binding IsSettingsSelected, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        Visibility="{Binding DataContext.IsSettingsSelected, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 </Grid>
 
                 <!-- ==============================================================
