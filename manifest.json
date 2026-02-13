@@ -6,28 +6,36 @@
     "minPowerShellVersion": "5.1",
     "description": "Two versions available: CLI (command-line menu) and GUI (Windows Forms interface with official Bepoz theming, search, filters, log management, and automatic cleanup)"
   },
-  "modules": {
-    "BepozDbCore": {
+  "modules": [
+    {
+      "id": "BepozDbCore",
+      "name": "BepozDbCore",
       "version": "1.3.1",
       "file": "modules/BepozDbCore.ps1",
       "description": "Core database functions for Bepoz SQL access (auto-logs all queries)"
     },
-    "BepozLogger": {
+    {
+      "id": "BepozLogger",
+      "name": "BepozLogger",
       "version": "1.0.1",
       "file": "modules/BepozLogger.ps1",
       "description": "Centralized logging for tools (user actions, queries, performance)"
     },
-    "BepozUI": {
+    {
+      "id": "BepozUI",
+      "name": "BepozUI",
       "version": "1.0.0",
       "file": "modules/BepozUI.ps1",
       "description": "Common Windows Forms UI helpers (reduces GUI code by 30-40%)"
     },
-    "BepozTheme": {
+    {
+      "id": "BepozTheme",
+      "name": "BepozTheme",
       "version": "1.0.0",
       "file": "modules/BepozTheme.ps1",
       "description": "Official Bepoz UI theme using brand color palette (professional styling)"
     }
-  },
+  ],
   "categories": [
     {
       "id": "scheduling",
