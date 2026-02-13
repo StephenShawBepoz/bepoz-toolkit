@@ -157,6 +157,7 @@ public partial class App : Application
         services.AddSingleton<IPreFlightService, PreFlightService>();
         services.AddSingleton<IHistoryService, HistoryService>();
         services.AddSingleton<IToastService, ToastService>();
+        services.AddSingleton<ITSPlusService, TSPlusService>();
 
         // --- ViewModels ---
         services.AddSingleton<MainViewModel>();
@@ -165,6 +166,8 @@ public partial class App : Application
         services.AddTransient<ViewModels.LogsViewModel>();
         services.AddTransient<ViewModels.SettingsViewModel>();
         services.AddTransient<ViewModels.ToolExecutionViewModel>();
+        services.AddTransient<ViewModels.TSPlusInstallerViewModel>();
+        services.AddTransient<ViewModels.TSPlusManagerViewModel>();
 
         // --- Views ---
         services.AddTransient<MainWindow>();

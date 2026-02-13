@@ -1,0 +1,272 @@
+<Window x:Class="BepozToolkit.App.Views.TSPlusInstallerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:BepozToolkit.App.Converters"
+        xmlns:vm="clr-namespace:BepozToolkit.App.ViewModels"
+        d:DataContext="{d:DesignInstance vm:TSPlusInstallerViewModel}"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="TSPlus Installer"
+        Width="960" Height="640" MinWidth="700" MinHeight="450"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource BackgroundPrimary}">
+
+    <Window.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Progress Bar -->
+        <ProgressBar Grid.Row="0" Minimum="0" Maximum="100" Value="{Binding Progress}"
+                     Height="4" BorderThickness="0"
+                     Foreground="{DynamicResource AccentPrimary}"
+                     Background="{DynamicResource BackgroundTertiary}" />
+
+        <!-- Main Content -->
+        <Grid Grid.Row="1" Margin="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Left: Output Area -->
+            <DockPanel Grid.Column="0">
+                <!-- Status Bar -->
+                <Border DockPanel.Dock="Top" Background="{DynamicResource BackgroundTertiary}"
+                        CornerRadius="6,6,0,0" Padding="12,8">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Text="{Binding StatusText}"
+                                   FontSize="13" FontWeight="Medium"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   VerticalAlignment="Center" />
+                        <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right"
+                                   FontSize="12" Foreground="{DynamicResource TextSecondary}"
+                                   VerticalAlignment="Center">
+                            <TextBlock.Text>
+                                <Binding Path="Progress" StringFormat="{}Progress: {0}%" />
+                            </TextBlock.Text>
+                        </TextBlock>
+                    </DockPanel>
+                </Border>
+
+                <!-- Control Buttons -->
+                <Border DockPanel.Dock="Bottom" Background="{DynamicResource BackgroundTertiary}"
+                        CornerRadius="0,0,6,6" Padding="12,8">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                        <Button Content="Start Install" Padding="12,6" Margin="0,0,8,0"
+                                Command="{Binding StartInstallCommand}"
+                                Background="{DynamicResource AccentPrimary}"
+                                Foreground="{DynamicResource TextOnAccent}"
+                                BorderThickness="0" Cursor="Hand" FontSize="12">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                            CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center" />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter TargetName="Bd" Property="Opacity" Value="0.5" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Button Content="Stop" Padding="12,6" Margin="0,0,8,0"
+                                Command="{Binding StopCommand}"
+                                Background="{DynamicResource ErrorColor}"
+                                Foreground="{DynamicResource TextOnAccent}"
+                                BorderThickness="0" Cursor="Hand" FontSize="12">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                            CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center" />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter TargetName="Bd" Property="Opacity" Value="0.5" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Button Content="Copy Log" Padding="12,6" Margin="0,0,8,0"
+                                Command="{Binding CopyLogCommand}"
+                                Background="{DynamicResource BackgroundSecondary}"
+                                Foreground="{DynamicResource TextPrimary}"
+                                BorderBrush="{DynamicResource CardBorder}"
+                                BorderThickness="1" Cursor="Hand" FontSize="12">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center" />
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Button Content="Open Log" Padding="12,6"
+                                Command="{Binding OpenLogCommand}"
+                                Background="Transparent"
+                                Foreground="{DynamicResource AccentPrimary}"
+                                BorderThickness="0" Cursor="Hand" FontSize="12" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Output Text -->
+                <Border Background="{DynamicResource BackgroundSecondary}"
+                        BorderBrush="{DynamicResource CardBorder}" BorderThickness="1,0">
+                    <ListBox ItemsSource="{Binding OutputLines}"
+                             BorderThickness="0" Background="Transparent"
+                             FontFamily="Consolas" FontSize="12"
+                             Foreground="{DynamicResource TextPrimary}"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ScrollViewer.CanContentScroll="True"
+                             VirtualizingStackPanel.IsVirtualizing="True">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="12,1" />
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="BorderThickness" Value="0" />
+                                <Setter Property="Focusable" Value="False" />
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource BackgroundTertiary}" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" TextWrapping="NoWrap" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
+            </DockPanel>
+
+            <!-- Right: Configuration Panel -->
+            <Border Grid.Column="2" Background="{DynamicResource CardBackground}"
+                    BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
+                    CornerRadius="8" Padding="16">
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="1" BlurRadius="4" Opacity="0.06" />
+                </Border.Effect>
+                <DockPanel>
+                    <!-- Tool Header -->
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBlock Text="TSPlus Installer" FontSize="18" FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   TextWrapping="Wrap" Margin="0,0,0,4" />
+                        <TextBlock Text="v2.0.1" FontSize="12"
+                                   Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,4" />
+                        <TextBlock Text="TSPlus" FontSize="12"
+                                   Foreground="{DynamicResource AccentPrimary}" Margin="0,0,0,12" />
+
+                        <Rectangle Height="1" Fill="{DynamicResource CardBorder}" Margin="0,0,0,12" />
+
+                        <TextBlock Text="Download, validate, and silently install TSPlus Remote Access with signature verification."
+                                   FontSize="12" Foreground="{DynamicResource TextSecondary}"
+                                   TextWrapping="Wrap" Margin="0,0,0,16" />
+
+                        <Rectangle Height="1" Fill="{DynamicResource CardBorder}" Margin="0,0,0,12" />
+
+                        <!-- Running/Installed indicator -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
+                                    Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}">
+                            <Ellipse Width="8" Height="8" Fill="{DynamicResource AccentPrimary}"
+                                     Margin="0,0,8,0" VerticalAlignment="Center" />
+                            <TextBlock Text="Installing..." FontSize="12"
+                                       Foreground="{DynamicResource AccentPrimary}" />
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
+                                    Visibility="{Binding IsAlreadyInstalled, Converter={StaticResource BoolToVisibility}}">
+                            <Ellipse Width="8" Height="8" Fill="{DynamicResource SuccessColor}"
+                                     Margin="0,0,8,0" VerticalAlignment="Center" />
+                            <TextBlock FontSize="12" Foreground="{DynamicResource SuccessColor}">
+                                <Run Text="Installed: v" /><Run Text="{Binding InstalledVersion, Mode=OneWay}" />
+                            </TextBlock>
+                        </StackPanel>
+
+                        <Rectangle Height="1" Fill="{DynamicResource CardBorder}" Margin="0,4,0,12" />
+
+                        <!-- Configuration inputs -->
+                        <TextBlock Text="Installer URL" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,4" />
+                        <TextBox Text="{Binding InstallerUrl, UpdateSourceTrigger=PropertyChanged}"
+                                 FontSize="11" Padding="8,6" Margin="0,0,0,12"
+                                 Background="{DynamicResource BackgroundTertiary}"
+                                 Foreground="{DynamicResource TextPrimary}"
+                                 BorderBrush="{DynamicResource CardBorder}" />
+
+                        <TextBlock Text="Local Group Name" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,4" />
+                        <TextBox Text="{Binding LocalGroupName, UpdateSourceTrigger=PropertyChanged}"
+                                 FontSize="11" Padding="8,6" Margin="0,0,0,8"
+                                 Background="{DynamicResource BackgroundTertiary}"
+                                 Foreground="{DynamicResource TextPrimary}"
+                                 BorderBrush="{DynamicResource CardBorder}" />
+
+                        <CheckBox Content="Create local group" Margin="0,0,0,8"
+                                  IsChecked="{Binding ShouldCreateGroup}"
+                                  Foreground="{DynamicResource TextPrimary}" FontSize="12" />
+
+                        <CheckBox Content="Reboot after install" Margin="0,0,0,12"
+                                  IsChecked="{Binding ShouldReboot}"
+                                  Foreground="{DynamicResource TextPrimary}" FontSize="12" />
+                    </StackPanel>
+
+                    <!-- Error Panel -->
+                    <Border DockPanel.Dock="Bottom"
+                            Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}"
+                            Background="{DynamicResource ErrorBackground}"
+                            CornerRadius="6" Padding="12" Margin="0,12,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Installation Failed" FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource ErrorColor}" Margin="0,0,0,8" />
+                            <TextBlock Text="{Binding ErrorMessage}" FontSize="11"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       TextWrapping="Wrap" MaxHeight="60"
+                                       TextTrimming="CharacterEllipsis" Margin="0,0,0,12" />
+                            <Button Content="Retry" Padding="0,6"
+                                    Command="{Binding StartInstallCommand}"
+                                    HorizontalContentAlignment="Center"
+                                    Background="{DynamicResource AccentPrimary}"
+                                    Foreground="{DynamicResource TextOnAccent}"
+                                    BorderThickness="0" Cursor="Hand" FontSize="12">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center" />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter TargetName="Bd" Property="Opacity" Value="0.5" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Spacer -->
+                    <Border />
+                </DockPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

@@ -171,6 +171,25 @@ public class ToolsViewModel : ViewModelBase
     {
         if (tool is null) return;
 
+        // Native WPF tools bypass the PowerShell execution path
+        if (tool.Id == "tsplus-installer")
+        {
+            var vm = App.Services.GetService(typeof(TSPlusInstallerViewModel)) as TSPlusInstallerViewModel;
+            if (vm is null) return;
+            var window = new Views.TSPlusInstallerWindow { DataContext = vm };
+            window.Show();
+            return;
+        }
+
+        if (tool.Id == "tsplus-manager")
+        {
+            var vm = App.Services.GetService(typeof(TSPlusManagerViewModel)) as TSPlusManagerViewModel;
+            if (vm is null) return;
+            var window = new Views.TSPlusManagerWindow { DataContext = vm };
+            window.Show();
+            return;
+        }
+
         var executionVm = new ToolExecutionViewModel(
             _gitHubService,
             _powerShellHost,
@@ -180,11 +199,11 @@ public class ToolsViewModel : ViewModelBase
 
         executionVm.SetTool(tool);
 
-        var window = new Views.ToolExecutionWindow
+        var executionWindow = new Views.ToolExecutionWindow
         {
             DataContext = executionVm
         };
-        window.Show();
+        executionWindow.Show();
         await executionVm.StartExecutionAsync();
     }
 }
