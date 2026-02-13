@@ -16,6 +16,16 @@ public partial class MainWindow : Window
 {
     public MainWindow()
     {
+        // Pre-load resources before XAML parsing to work around Application.Resources
+        // not being available during InitializeComponent() (stale build artifact issue).
+        Resources.MergedDictionaries.Add(new ResourceDictionary
+        {
+            Source = new Uri("Resources/Styles.xaml", UriKind.Relative)
+        });
+        Resources[nameof(Helpers.BoolToThemeIconConverter)] = new Helpers.BoolToThemeIconConverter();
+        Resources[nameof(Helpers.ToastTypeToColorConverter)] = new Helpers.ToastTypeToColorConverter();
+        Resources["BooleanToVisibilityConverter"] = new Converters.BoolToVisibilityConverter();
+
         InitializeComponent();
         StateChanged += MainWindow_StateChanged;
     }
