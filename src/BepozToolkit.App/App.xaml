@@ -17,7 +17,7 @@
                                              SecondaryColor="Amber" />
 
                 <!-- MaterialDesign defaults -->
-                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
 
                 <!-- Bepoz custom theme (light by default; swapped at runtime) -->
                 <ResourceDictionary Source="Themes/BepozLightTheme.xaml" />
