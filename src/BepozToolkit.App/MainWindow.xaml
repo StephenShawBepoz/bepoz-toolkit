@@ -93,7 +93,7 @@
                                 VerticalAlignment="Center">
 
                         <!-- Theme toggle button -->
-                        <Button Style="{StaticResource TitleBarButton}"
+                        <Button Style="{DynamicResource TitleBarButton}"
                                 Command="{Binding ToggleThemeCommand}"
                                 ToolTip="Toggle theme (light/dark)"
                                 Width="40">
@@ -105,7 +105,7 @@
                                    Opacity="0.2" Margin="2,8" />
 
                         <!-- Minimize -->
-                        <Button Style="{StaticResource TitleBarButton}"
+                        <Button Style="{DynamicResource TitleBarButton}"
                                 Click="MinimizeButton_Click"
                                 ToolTip="Minimize">
                             <materialDesign:PackIcon Kind="WindowMinimize" Width="16" Height="16" />
@@ -113,7 +113,7 @@
 
                         <!-- Maximize / Restore -->
                         <Button x:Name="MaximizeRestoreButton"
-                                Style="{StaticResource TitleBarButton}"
+                                Style="{DynamicResource TitleBarButton}"
                                 Click="MaximizeRestoreButton_Click"
                                 ToolTip="Maximize">
                             <materialDesign:PackIcon x:Name="MaximizeRestoreIcon"
@@ -122,7 +122,7 @@
                         </Button>
 
                         <!-- Close -->
-                        <Button Style="{StaticResource TitleBarCloseButton}"
+                        <Button Style="{DynamicResource TitleBarCloseButton}"
                                 Click="CloseButton_Click"
                                 ToolTip="Close">
                             <materialDesign:PackIcon Kind="WindowClose" Width="16" Height="16" />
@@ -135,7 +135,7 @@
                  OFFLINE BANNER (hidden by default)
                  ============================================================== -->
             <Border DockPanel.Dock="Top"
-                    Style="{StaticResource OfflineBanner}"
+                    Style="{DynamicResource OfflineBanner}"
                     Visibility="{Binding IsOffline, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                     <materialDesign:PackIcon Kind="CloudOffOutline"
@@ -143,7 +143,7 @@
                                              Foreground="{DynamicResource OfflineBannerForeground}"
                                              VerticalAlignment="Center"
                                              Margin="0,0,8,0" />
-                    <TextBlock Style="{StaticResource OfflineBannerText}"
+                    <TextBlock Style="{DynamicResource OfflineBannerText}"
                                Text="You are offline. Cached tools are available; some features may be limited." />
                 </StackPanel>
             </Border>
@@ -156,7 +156,7 @@
                     BorderBrush="{DynamicResource DividerColor}"
                     BorderThickness="0,0,0,1">
                 <StackPanel Orientation="Horizontal" Margin="8,0">
-                    <RadioButton Style="{StaticResource NavTabButton}"
+                    <RadioButton Style="{DynamicResource NavTabButton}"
                                  IsChecked="{Binding IsDashboardSelected, Mode=OneWay}"
                                  Command="{Binding NavigateCommand}"
                                  CommandParameter="Dashboard">
@@ -169,7 +169,7 @@
                         </StackPanel>
                     </RadioButton>
 
-                    <RadioButton Style="{StaticResource NavTabButton}"
+                    <RadioButton Style="{DynamicResource NavTabButton}"
                                  IsChecked="{Binding IsToolsSelected, Mode=OneWay}"
                                  Command="{Binding NavigateCommand}"
                                  CommandParameter="Tools">
@@ -182,7 +182,7 @@
                         </StackPanel>
                     </RadioButton>
 
-                    <RadioButton Style="{StaticResource NavTabButton}"
+                    <RadioButton Style="{DynamicResource NavTabButton}"
                                  IsChecked="{Binding IsLogsSelected, Mode=OneWay}"
                                  Command="{Binding NavigateCommand}"
                                  CommandParameter="Logs">
@@ -195,7 +195,7 @@
                         </StackPanel>
                     </RadioButton>
 
-                    <RadioButton Style="{StaticResource NavTabButton}"
+                    <RadioButton Style="{DynamicResource NavTabButton}"
                                  IsChecked="{Binding IsSettingsSelected, Mode=OneWay}"
                                  Command="{Binding NavigateCommand}"
                                  CommandParameter="Settings">
@@ -226,7 +226,7 @@
 
                     <!-- Left: version info -->
                     <TextBlock Grid.Column="0"
-                               Style="{StaticResource CaptionText}"
+                               Style="{DynamicResource CaptionText}"
                                VerticalAlignment="Center">
                         <Run Text="{Binding AppTitle, Mode=OneTime}" />
                         <Run Text="{Binding AppVersion, Mode=OneTime}" />
@@ -260,7 +260,7 @@
                                                          VerticalAlignment="Center"
                                                          Foreground="{DynamicResource TextSecondary}"
                                                          Margin="0,0,6,0" />
-                                <TextBlock Style="{StaticResource StatusPillText}"
+                                <TextBlock Style="{DynamicResource StatusPillText}"
                                            Text="{Binding GitHubStatus}"
                                            Foreground="{DynamicResource TextSecondary}" />
                             </StackPanel>
@@ -289,7 +289,7 @@
                                                          VerticalAlignment="Center"
                                                          Foreground="{DynamicResource TextSecondary}"
                                                          Margin="0,0,6,0" />
-                                <TextBlock Style="{StaticResource StatusPillText}"
+                                <TextBlock Style="{DynamicResource StatusPillText}"
                                            Text="{Binding CacheStatus}"
                                            Foreground="{DynamicResource TextSecondary}" />
                             </StackPanel>
@@ -318,7 +318,7 @@
                                                          VerticalAlignment="Center"
                                                          Foreground="{DynamicResource TextSecondary}"
                                                          Margin="0,0,6,0" />
-                                <TextBlock Style="{StaticResource StatusPillText}"
+                                <TextBlock Style="{DynamicResource StatusPillText}"
                                            Text="{Binding PsStatus}"
                                            Foreground="{DynamicResource TextSecondary}" />
                             </StackPanel>
@@ -365,7 +365,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Style="{StaticResource ToastBorder}"
+                            <Border Style="{DynamicResource ToastBorder}"
                                     Margin="0,0,0,8">
                                 <Border.BorderBrush>
                                     <SolidColorBrush Color="{Binding Type,
@@ -405,7 +405,7 @@
 
                                     <!-- Dismiss -->
                                     <Button Grid.Column="2"
-                                            Style="{StaticResource BepozGhostButton}"
+                                            Style="{DynamicResource BepozGhostButton}"
                                             Command="{Binding DataContext.DismissToastCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                             CommandParameter="{Binding}"
                                             VerticalAlignment="Top"
